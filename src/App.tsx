@@ -10,6 +10,7 @@ import Vendas from "./pages/Vendas";
 import NovaVenda from "./pages/NovaVenda";
 import Estoque from "./pages/Estoque";
 import NovoProduto from "./pages/NovoProduto";
+import ProdutoDetalhe from "./pages/ProdutoDetalhe";
 import Financeiro from "./pages/Financeiro";
 import NovaConta from "./pages/NovaConta";
 import NovaCompra from "./pages/NovaCompra";
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/vendas/nova" element={<NovaVenda />} />
           <Route path="/estoque" element={<Estoque />} />
           <Route path="/estoque/novo" element={<NovoProduto />} />
+          <Route path="/estoque/:id" element={<ProdutoDetalhe />} />
           <Route path="/estoque/compra" element={<NovaCompra />} />
           <Route path="/financeiro" element={<Financeiro />} />
           <Route path="/financeiro/nova-conta" element={<NovaConta />} />
