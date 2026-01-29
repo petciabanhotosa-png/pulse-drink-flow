@@ -3,7 +3,17 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+
+// Pages
+import Dashboard from "./pages/Dashboard";
+import Vendas from "./pages/Vendas";
+import NovaVenda from "./pages/NovaVenda";
+import Estoque from "./pages/Estoque";
+import NovoProduto from "./pages/NovoProduto";
+import Financeiro from "./pages/Financeiro";
+import NovaConta from "./pages/NovaConta";
+import NovaCompra from "./pages/NovaCompra";
+import Relatorios from "./pages/Relatorios";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -15,7 +25,15 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/vendas" element={<Vendas />} />
+          <Route path="/vendas/nova" element={<NovaVenda />} />
+          <Route path="/estoque" element={<Estoque />} />
+          <Route path="/estoque/novo" element={<NovoProduto />} />
+          <Route path="/estoque/compra" element={<NovaCompra />} />
+          <Route path="/financeiro" element={<Financeiro />} />
+          <Route path="/financeiro/nova-conta" element={<NovaConta />} />
+          <Route path="/relatorios" element={<Relatorios />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
