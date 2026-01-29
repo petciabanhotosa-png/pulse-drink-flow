@@ -222,7 +222,7 @@ export default function NovaVenda() {
             <RadioGroup
               value={paymentMethod}
               onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}
-              className="flex gap-3"
+              className="grid grid-cols-2 gap-3"
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="dinheiro" id="dinheiro" />
@@ -233,8 +233,12 @@ export default function NovaVenda() {
                 <Label htmlFor="pix">PIX</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="cartao" id="cartao" />
-                <Label htmlFor="cartao">Cartão</Label>
+                <RadioGroupItem value="credito" id="credito" />
+                <Label htmlFor="credito">Crédito</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="debito" id="debito" />
+                <Label htmlFor="debito">Débito</Label>
               </div>
             </RadioGroup>
           </CardContent>

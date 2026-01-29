@@ -5,13 +5,21 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useCashFlow, useCashBalance } from "@/hooks/useCashFlow";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useCashFlow, useCashBalance, useAddCashEntry } from "@/hooks/useCashFlow";
 import { useBills, useMarkBillAsPaid, usePendingBills } from "@/hooks/useBills";
-import { format, isAfter, isBefore, startOfToday } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { ArrowDownCircle, ArrowUpCircle, AlertCircle, Check, Plus } from "lucide-react";
+import { format, isBefore, startOfToday } from "date-fns";
+import { ArrowDownCircle, ArrowUpCircle, AlertCircle, Check, Plus, DollarSign, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -27,6 +35,11 @@ export default function Financeiro() {
   const { data: bills = [] } = useBills();
   const { data: pendingBills = [] } = usePendingBills();
   const markAsPaid = useMarkBillAsPaid();
+  const addCashEntry = useAddCashEntry();
+
+  const [cashDialogOpen, setCashDialogOpen] = useState(false);
+  const [cashAmount, setCashAmount] = useState("");
+  const [cashDescription, setCashDescription] = useState("");
 
   const today = startOfToday();
   const overdueBills = pendingBills.filter((b) => isBefore(new Date(b.due_date), today));
@@ -36,6 +49,22 @@ export default function Financeiro() {
 
   const totalEntries = entries.reduce((acc, c) => acc + c.amount, 0);
   const totalExits = exits.reduce((acc, c) => acc + c.amount, 0);
+
+  const handleAddCash = async () => {
+    const amount = parseFloat(cashAmount);
+    if (isNaN(amount) || amount <= 0) return;
+
+    await addCashEntry.mutateAsync({
+      type: "entrada",
+      category: "Aporte de Caixa",
+      description: cashDescription.trim() || "Entrada manual de dinheiro",
+      amount,
+    });
+
+    setCashAmount("");
+    setCashDescription("");
+    setCashDialogOpen(false);
+  };
 
   return (
     <AppLayout>
@@ -67,6 +96,61 @@ export default function Financeiro() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Ações rápidas */}
+        <div className="grid grid-cols-2 gap-3">
+          <Dialog open={cashDialogOpen} onOpenChange={setCashDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="h-16 flex-col gap-1">
+                <DollarSign className="w-5 h-5 text-success" />
+                <span className="text-xs">Adicionar Caixa</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Adicionar Valor ao Caixa</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cashAmount">Valor (R$)</Label>
+                  <Input
+                    id="cashAmount"
+                    type="number"
+                    step="0.01"
+                    value={cashAmount}
+                    onChange={(e) => setCashAmount(e.target.value)}
+                    placeholder="0,00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cashDescription">Descrição (opcional)</Label>
+                  <Input
+                    id="cashDescription"
+                    value={cashDescription}
+                    onChange={(e) => setCashDescription(e.target.value)}
+                    placeholder="Ex: Troco inicial do dia"
+                  />
+                </div>
+                <Button 
+                  className="w-full" 
+                  onClick={handleAddCash}
+                  disabled={addCashEntry.isPending || !cashAmount}
+                >
+                  {addCashEntry.isPending ? "Adicionando..." : "Confirmar Entrada"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Button 
+            variant="outline" 
+            className="h-16 flex-col gap-1"
+            onClick={() => navigate("/estoque/compra")}
+          >
+            <Package className="w-5 h-5 text-primary" />
+            <span className="text-xs">Comprar Produtos</span>
+          </Button>
+        </div>
 
         <Tabs defaultValue="fluxo" className="w-full">
           <TabsList className="w-full">
@@ -104,6 +188,7 @@ export default function Financeiro() {
                       <div>
                         <p className="font-medium text-sm">{entry.category}</p>
                         <p className="text-xs text-muted-foreground">
+                          {entry.description && <span>{entry.description} • </span>}
                           {format(new Date(entry.created_at), "dd/MM HH:mm")}
                         </p>
                       </div>
