@@ -61,3 +61,32 @@ export function useCreateCashFlowEntry() {
     },
   });
 }
+
+export function useAddCashEntry() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (entry: { type: "entrada" | "saida"; category: string; description?: string; amount: number }) => {
+      const { data, error } = await supabase
+        .from("cash_flow")
+        .insert({
+          type: entry.type,
+          category: entry.category,
+          description: entry.description || null,
+          amount: entry.amount,
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cash_flow"] });
+      toast({ title: "Valor adicionado ao caixa!" });
+    },
+    onError: (error) => {
+      toast({ title: "Erro ao adicionar valor", description: error.message, variant: "destructive" });
+    },
+  });
+}

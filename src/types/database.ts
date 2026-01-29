@@ -70,7 +70,7 @@ export interface Bill {
   updated_at: string;
 }
 
-export type PaymentMethod = 'dinheiro' | 'pix' | 'cartao';
+export type PaymentMethod = 'dinheiro' | 'pix' | 'credito' | 'debito';
 
 export interface SaleItemInput {
   product: Product;

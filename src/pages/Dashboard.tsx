@@ -1,9 +1,11 @@
-import { DollarSign, TrendingUp, Wallet, ShoppingCart } from "lucide-react";
+import { DollarSign, TrendingUp, Wallet, ShoppingCart, Download } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { LowStockAlert } from "@/components/dashboard/LowStockAlert";
 import { SalesChart } from "@/components/dashboard/SalesChart";
+import { Button } from "@/components/ui/button";
 import { useTodaySales, useMonthSales } from "@/hooks/useSales";
 import { useLowStockProducts } from "@/hooks/useProducts";
 import { useCashBalance } from "@/hooks/useCashFlow";
@@ -16,10 +18,13 @@ function formatCurrency(value: number) {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { data: todaySales = [] } = useTodaySales();
   const { data: monthSales = [] } = useMonthSales();
   const { data: lowStockProducts = [] } = useLowStockProducts();
   const { data: cashBalance = 0 } = useCashBalance();
+
+  const isStandalone = typeof window !== "undefined" && window.matchMedia("(display-mode: standalone)").matches;
 
   const todayTotal = todaySales.reduce((acc, sale) => acc + sale.total_amount, 0);
   const monthTotal = monthSales.reduce((acc, sale) => acc + sale.total_amount, 0);
@@ -46,6 +51,18 @@ export default function Dashboard() {
       <PageHeader title="Dashboard" subtitle="Visão geral do seu negócio" />
       
       <div className="p-4 space-y-4 animate-fade-in">
+        {/* Install Banner */}
+        {!isStandalone && (
+          <Button 
+            variant="outline" 
+            className="w-full border-primary/30 bg-primary/5 hover:bg-primary/10"
+            onClick={() => navigate("/instalar")}
+          >
+            <Download className="w-4 h-4 mr-2 text-primary" />
+            <span>Instalar App no Celular</span>
+          </Button>
+        )}
+
         {/* KPIs */}
         <div className="grid grid-cols-2 gap-3">
           <KPICard
