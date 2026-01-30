@@ -61,13 +61,15 @@ interface CreateSaleInput {
   items: SaleItemInput[];
   payment_method: PaymentMethod;
   customer_id?: string | null;
+  discount_amount?: number;
+  status?: "pago" | "pendente";
 }
 
 export function useCreateSale() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ items, payment_method, customer_id }: CreateSaleInput) => {
+    mutationFn: async ({ items, payment_method, customer_id, discount_amount = 0, status = "pago" }: CreateSaleInput) => {
       // Calcular totais
       let totalAmount = 0;
       let totalProfit = 0;
@@ -88,6 +90,11 @@ export function useCreateSale() {
         };
       });
 
+      // Aplicar desconto
+      totalAmount -= discount_amount;
+      totalProfit -= discount_amount;
+      if (totalProfit < 0) totalProfit = 0;
+
       // Criar venda
       const { data: sale, error: saleError } = await supabase
         .from("sales")
@@ -96,6 +103,8 @@ export function useCreateSale() {
           total_amount: totalAmount,
           total_profit: totalProfit,
           payment_method,
+          discount_amount,
+          status,
         })
         .select()
         .single();
@@ -119,19 +128,21 @@ export function useCreateSale() {
         if (stockError) throw stockError;
       }
 
-      // Registrar entrada no caixa
-      const { error: cashError } = await supabase
-        .from("cash_flow")
-        .insert({
-          type: "entrada",
-          category: "venda",
-          description: `Venda #${sale.id.slice(0, 8)}`,
-          amount: totalAmount,
-          reference_id: sale.id,
-          reference_type: "sale",
-        });
+      // Registrar entrada no caixa APENAS se não for pendente
+      if (status === "pago") {
+        const { error: cashError } = await supabase
+          .from("cash_flow")
+          .insert({
+            type: "entrada",
+            category: "venda",
+            description: `Venda #${sale.id.slice(0, 8)}`,
+            amount: totalAmount,
+            reference_id: sale.id,
+            reference_type: "sale",
+          });
 
-      if (cashError) throw cashError;
+        if (cashError) throw cashError;
+      }
 
       return sale;
     },
@@ -143,6 +154,56 @@ export function useCreateSale() {
     },
     onError: (error) => {
       toast({ title: "Erro ao registrar venda", description: error.message, variant: "destructive" });
+    },
+  });
+}
+
+export function useMarkSaleAsPaid() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (saleId: string) => {
+      // Buscar venda
+      const { data: sale, error: fetchError } = await supabase
+        .from("sales")
+        .select("*")
+        .eq("id", saleId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (sale.status === "pago") throw new Error("Venda já está paga");
+
+      // Atualizar status
+      const { error: updateError } = await supabase
+        .from("sales")
+        .update({ status: "pago" })
+        .eq("id", saleId);
+
+      if (updateError) throw updateError;
+
+      // Registrar entrada no caixa
+      const { error: cashError } = await supabase
+        .from("cash_flow")
+        .insert({
+          type: "entrada",
+          category: "venda",
+          description: `Venda #${saleId.slice(0, 8)} (pago)`,
+          amount: sale.total_amount,
+          reference_id: saleId,
+          reference_type: "sale",
+        });
+
+      if (cashError) throw cashError;
+
+      return sale;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["cash_flow"] });
+      toast({ title: "Venda marcada como paga!" });
+    },
+    onError: (error) => {
+      toast({ title: "Erro ao marcar venda como paga", description: error.message, variant: "destructive" });
     },
   });
 }

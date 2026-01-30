@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, History } from "lucide-react";
+import { Plus, History, Check } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useSales } from "@/hooks/useSales";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSales, useMarkSaleAsPaid } from "@/hooks/useSales";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -20,12 +21,24 @@ function formatCurrency(value: number) {
 const paymentLabels = {
   dinheiro: "Dinheiro",
   pix: "PIX",
+  credito: "Crédito",
+  debito: "Débito",
   cartao: "Cartão",
 };
 
 export default function Vendas() {
   const navigate = useNavigate();
   const { data: sales = [], isLoading } = useSales();
+  const markAsPaid = useMarkSaleAsPaid();
+  const [filter, setFilter] = useState<"todas" | "pagas" | "pendentes">("todas");
+
+  const filteredSales = sales.filter((sale) => {
+    if (filter === "pagas") return sale.status === "pago";
+    if (filter === "pendentes") return sale.status === "pendente";
+    return true;
+  });
+
+  const pendingCount = sales.filter((s) => s.status === "pendente").length;
 
   return (
     <AppLayout>
@@ -41,21 +54,48 @@ export default function Vendas() {
       />
 
       <div className="p-4 space-y-3">
+        {/* Filtros */}
+        <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
+          <TabsList className="w-full grid grid-cols-3">
+            <TabsTrigger value="todas" className="text-xs">
+              Todas
+            </TabsTrigger>
+            <TabsTrigger value="pagas" className="text-xs">
+              Pagas
+            </TabsTrigger>
+            <TabsTrigger value="pendentes" className="text-xs relative">
+              Pendentes
+              {pendingCount > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 text-[10px] flex items-center justify-center">
+                  {pendingCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         {isLoading ? (
           <div className="text-center py-8 text-muted-foreground">
             Carregando...
           </div>
-        ) : sales.length === 0 ? (
+        ) : filteredSales.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <History className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>Nenhuma venda registrada</p>
-            <Button className="mt-4" onClick={() => navigate("/vendas/nova")}>
-              Registrar primeira venda
-            </Button>
+            <p>Nenhuma venda {filter !== "todas" ? filter.slice(0, -1) : "registrada"}</p>
+            {filter === "todas" && (
+              <Button className="mt-4" onClick={() => navigate("/vendas/nova")}>
+                Registrar primeira venda
+              </Button>
+            )}
           </div>
         ) : (
-          sales.map((sale) => (
-            <Card key={sale.id} className="transition-all hover:border-primary/30">
+          filteredSales.map((sale) => (
+            <Card 
+              key={sale.id} 
+              className={`transition-all hover:border-primary/30 ${
+                sale.status === "pendente" ? "border-warning/50 bg-warning/5" : ""
+              }`}
+            >
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div>
@@ -66,10 +106,29 @@ export default function Vendas() {
                     <p className="text-xs text-primary mt-1">
                       Lucro: {formatCurrency(sale.total_profit)}
                     </p>
+                    {(sale.discount_amount ?? 0) > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Desconto: -{formatCurrency(sale.discount_amount ?? 0)}
+                      </p>
+                    )}
                   </div>
-                  <Badge variant="secondary">
-                    {paymentLabels[sale.payment_method as keyof typeof paymentLabels]}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-2">
+                    <Badge variant={sale.status === "pendente" ? "outline" : "secondary"} className={sale.status === "pendente" ? "border-warning text-warning" : ""}>
+                      {paymentLabels[sale.payment_method as keyof typeof paymentLabels]}
+                    </Badge>
+                    {sale.status === "pendente" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs h-7 border-success text-success hover:bg-success/10"
+                        onClick={() => markAsPaid.mutate(sale.id)}
+                        disabled={markAsPaid.isPending}
+                      >
+                        <Check className="w-3 h-3 mr-1" />
+                        Pagar
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

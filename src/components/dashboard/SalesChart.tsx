@@ -5,10 +5,11 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface SalesChartProps {
   data: { date: string; value: number }[];
+  period: string;
+  onPeriodChange: (period: string) => void;
 }
 
-export function SalesChart({ data }: SalesChartProps) {
-  const [period, setPeriod] = useState("week");
+export function SalesChart({ data, period, onPeriodChange }: SalesChartProps) {
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -23,7 +24,7 @@ export function SalesChart({ data }: SalesChartProps) {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium">Vendas</CardTitle>
-          <Tabs value={period} onValueChange={setPeriod}>
+          <Tabs value={period} onValueChange={onPeriodChange}>
             <TabsList className="h-8">
               <TabsTrigger value="day" className="text-xs px-2 h-6">
                 Dia
