@@ -40,7 +40,7 @@ export default function Relatorios() {
   }, {} as Record<string, number>);
 
   const paymentChartData = Object.entries(salesByPayment).map(([name, value]) => ({
-    name: name === "dinheiro" ? "Dinheiro" : name === "pix" ? "PIX" : "Cartão",
+    name: name === "dinheiro" ? "Dinheiro" : name === "pix" ? "PIX" : name === "credito" ? "Crédito" : name === "debito" ? "Débito" : "Cartão",
     value,
   }));
 
@@ -77,21 +77,26 @@ export default function Relatorios() {
 
       <div className="p-4 pb-24">
         <Tabs defaultValue="vendas" className="w-full">
-          <TabsList className="w-full grid grid-cols-5 h-auto">
-            <TabsTrigger value="vendas" className="text-xs py-2 px-1">
+          <TabsList className="w-full grid grid-cols-5 h-auto mb-2">
+            <TabsTrigger value="vendas" className="flex flex-col items-center gap-1 text-[10px] py-2 px-1">
               <DollarSign className="w-4 h-4" />
+              <span className="truncate w-full text-center">Vendas</span>
             </TabsTrigger>
-            <TabsTrigger value="lucro" className="text-xs py-2 px-1">
+            <TabsTrigger value="lucro" className="flex flex-col items-center gap-1 text-[10px] py-2 px-1">
               <TrendingUp className="w-4 h-4" />
+              <span className="truncate w-full text-center">Lucro</span>
             </TabsTrigger>
-            <TabsTrigger value="estoque" className="text-xs py-2 px-1">
+            <TabsTrigger value="estoque" className="flex flex-col items-center gap-1 text-[10px] py-2 px-1">
               <Package className="w-4 h-4" />
+              <span className="truncate w-full text-center">Estoque</span>
             </TabsTrigger>
-            <TabsTrigger value="financeiro" className="text-xs py-2 px-1">
+            <TabsTrigger value="financeiro" className="flex flex-col items-center gap-1 text-[10px] py-2 px-1">
               <Receipt className="w-4 h-4" />
+              <span className="truncate w-full text-center">Finanças</span>
             </TabsTrigger>
-            <TabsTrigger value="ranking" className="text-xs py-2 px-1">
+            <TabsTrigger value="ranking" className="flex flex-col items-center gap-1 text-[10px] py-2 px-1">
               <Trophy className="w-4 h-4" />
+              <span className="truncate w-full text-center">Ranking</span>
             </TabsTrigger>
           </TabsList>
 

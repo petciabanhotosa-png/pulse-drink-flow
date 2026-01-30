@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Minus, Trash2, ShoppingBag } from "lucide-react";
+import { Plus, Minus, Trash2, ShoppingBag, Percent } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import { useProducts } from "@/hooks/useProducts";
 import { useCreateSale } from "@/hooks/useSales";
 import { useCustomers, useCreateCustomer } from "@/hooks/useCustomers";
@@ -34,18 +35,32 @@ export default function NovaVenda() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("dinheiro");
   const [customerName, setCustomerName] = useState("");
   const [search, setSearch] = useState("");
+  const [discountType, setDiscountType] = useState<"percent" | "value">("percent");
+  const [discountValue, setDiscountValue] = useState<string>("");
+  const [isPending, setIsPending] = useState(false);
 
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalAmount = items.reduce((acc, item) => 
+  const subtotal = items.reduce((acc, item) => 
     acc + item.product.sale_price * item.quantity, 0
   );
 
+  // Calcular desconto
+  const discountAmount = (() => {
+    const val = parseFloat(discountValue) || 0;
+    if (discountType === "percent") {
+      return Math.min((subtotal * val) / 100, subtotal);
+    }
+    return Math.min(val, subtotal);
+  })();
+
+  const totalAmount = subtotal - discountAmount;
+
   const totalProfit = items.reduce((acc, item) => 
     acc + (item.product.sale_price - item.product.cost_price) * item.quantity, 0
-  );
+  ) - discountAmount;
 
   const addItem = (product: typeof products[0]) => {
     if (product.stock_quantity === 0) {
@@ -112,6 +127,8 @@ export default function NovaVenda() {
       items,
       payment_method: paymentMethod,
       customer_id: customerId,
+      discount_amount: discountAmount,
+      status: isPending ? "pendente" : "pago",
     });
 
     navigate("/vendas");
@@ -213,6 +230,48 @@ export default function NovaVenda() {
           </Card>
         )}
 
+        {/* Desconto */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Percent className="w-4 h-4" />
+              Desconto
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Input
+                  type="number"
+                  placeholder={discountType === "percent" ? "%" : "R$"}
+                  value={discountValue}
+                  onChange={(e) => setDiscountValue(e.target.value)}
+                  min="0"
+                />
+              </div>
+              <Button
+                variant={discountType === "percent" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setDiscountType("percent")}
+              >
+                %
+              </Button>
+              <Button
+                variant={discountType === "value" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setDiscountType("value")}
+              >
+                R$
+              </Button>
+            </div>
+            {discountAmount > 0 && (
+              <p className="text-sm text-primary mt-2">
+                Desconto: -{formatCurrency(discountAmount)}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Forma de pagamento */}
         <Card>
           <CardHeader className="pb-2">
@@ -244,6 +303,24 @@ export default function NovaVenda() {
           </CardContent>
         </Card>
 
+        {/* Venda Pendente */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-sm">Pagamento Pendente</p>
+                <p className="text-xs text-muted-foreground">
+                  Salvar sem registrar entrada no caixa
+                </p>
+              </div>
+              <Switch
+                checked={isPending}
+                onCheckedChange={setIsPending}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Cliente (opcional) */}
         <Card>
           <CardHeader className="pb-2">
@@ -265,6 +342,11 @@ export default function NovaVenda() {
           <div className="max-w-lg mx-auto">
             <div className="flex items-center justify-between mb-3">
               <div>
+                {discountAmount > 0 && (
+                  <p className="text-xs text-muted-foreground line-through">
+                    {formatCurrency(subtotal)}
+                  </p>
+                )}
                 <p className="text-sm text-muted-foreground">Total</p>
                 <p className="text-2xl font-display font-bold text-primary text-glow">
                   {formatCurrency(totalAmount)}
@@ -272,15 +354,21 @@ export default function NovaVenda() {
               </div>
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">Lucro</p>
-                <p className="text-sm text-primary">{formatCurrency(totalProfit)}</p>
+                <p className="text-sm text-primary">{formatCurrency(totalProfit > 0 ? totalProfit : 0)}</p>
+                {isPending && (
+                  <Badge variant="outline" className="mt-1 text-warning border-warning">
+                    Pendente
+                  </Badge>
+                )}
               </div>
             </div>
             <Button
-              className="w-full glow-neon"
+              className={cn("w-full", !isPending && "glow-neon")}
+              variant={isPending ? "outline" : "default"}
               onClick={handleSubmit}
               disabled={createSale.isPending}
             >
-              {createSale.isPending ? "Registrando..." : "Confirmar Venda"}
+              {createSale.isPending ? "Registrando..." : isPending ? "Salvar Pendente" : "Confirmar Venda"}
             </Button>
           </div>
         </div>

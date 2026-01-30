@@ -22,7 +22,9 @@ export interface Sale {
   customer_id: string | null;
   total_amount: number;
   total_profit: number;
-  payment_method: 'dinheiro' | 'pix' | 'cartao';
+  discount_amount?: number;
+  payment_method: 'dinheiro' | 'pix' | 'credito' | 'debito';
+  status: 'pago' | 'pendente';
   created_at: string;
 }
 

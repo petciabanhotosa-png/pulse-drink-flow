@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { DollarSign, TrendingUp, Wallet, ShoppingCart, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -5,8 +6,9 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { LowStockAlert } from "@/components/dashboard/LowStockAlert";
 import { SalesChart } from "@/components/dashboard/SalesChart";
+import { DashboardBanner } from "@/components/dashboard/DashboardBanner";
 import { Button } from "@/components/ui/button";
-import { useTodaySales, useMonthSales } from "@/hooks/useSales";
+import { useTodaySales, useMonthSales, useSales } from "@/hooks/useSales";
 import { useLowStockProducts } from "@/hooks/useProducts";
 import { useCashBalance } from "@/hooks/useCashFlow";
 
@@ -19,8 +21,10 @@ function formatCurrency(value: number) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [chartPeriod, setChartPeriod] = useState("week");
   const { data: todaySales = [] } = useTodaySales();
   const { data: monthSales = [] } = useMonthSales();
+  const { data: allSales = [] } = useSales();
   const { data: lowStockProducts = [] } = useLowStockProducts();
   const { data: cashBalance = 0 } = useCashBalance();
 
@@ -30,27 +34,63 @@ export default function Dashboard() {
   const monthTotal = monthSales.reduce((acc, sale) => acc + sale.total_amount, 0);
   const totalProfit = monthSales.reduce((acc, sale) => acc + sale.total_profit, 0);
 
-  // Gerar dados do gráfico (últimos 7 dias)
-  const chartData = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (6 - i));
-    const dateStr = date.toISOString().split("T")[0];
-    
-    const dayTotal = monthSales
-      .filter((s) => s.created_at.startsWith(dateStr))
-      .reduce((acc, s) => acc + s.total_amount, 0);
+  // Gerar dados do gráfico baseado no período selecionado
+  const getChartData = () => {
+    let days = 7;
+    let dateFormat: Intl.DateTimeFormatOptions = { weekday: "short" };
+    let salesData = monthSales;
 
-    return {
-      date: date.toLocaleDateString("pt-BR", { weekday: "short" }),
-      value: dayTotal,
-    };
-  });
+    if (chartPeriod === "day") {
+      // Últimas 24 horas por hora
+      const hours = Array.from({ length: 24 }, (_, i) => {
+        const date = new Date();
+        date.setHours(date.getHours() - (23 - i), 0, 0, 0);
+        const hourStr = date.toISOString().slice(0, 13);
+        
+        const hourTotal = todaySales
+          .filter((s) => s.created_at.slice(0, 13) === hourStr)
+          .reduce((acc, s) => acc + s.total_amount, 0);
+
+        return {
+          date: date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+          value: hourTotal,
+        };
+      });
+      return hours;
+    }
+
+    if (chartPeriod === "month") {
+      days = 30;
+      dateFormat = { day: "numeric" };
+      salesData = allSales;
+    }
+
+    return Array.from({ length: days }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (days - 1 - i));
+      const dateStr = date.toISOString().split("T")[0];
+      
+      const dayTotal = salesData
+        .filter((s) => s.created_at.startsWith(dateStr))
+        .reduce((acc, s) => acc + s.total_amount, 0);
+
+      return {
+        date: date.toLocaleDateString("pt-BR", dateFormat),
+        value: dayTotal,
+      };
+    });
+  };
+
+  const chartData = getChartData();
 
   return (
     <AppLayout>
       <PageHeader title="Dashboard" subtitle="Visão geral do seu negócio" />
       
       <div className="p-4 space-y-4 animate-fade-in">
+        {/* Banner */}
+        <DashboardBanner />
+
         {/* Install Banner */}
         {!isStandalone && (
           <Button 
@@ -94,7 +134,7 @@ export default function Dashboard() {
         <LowStockAlert products={lowStockProducts} />
 
         {/* Gráfico de vendas */}
-        <SalesChart data={chartData} />
+        <SalesChart data={chartData} period={chartPeriod} onPeriodChange={setChartPeriod} />
       </div>
     </AppLayout>
   );
