@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import Vendas from "./pages/Vendas";
 import NovaVenda from "./pages/NovaVenda";
+import VendaDetalhe from "./pages/VendaDetalhe";
 import Estoque from "./pages/Estoque";
 import NovoProduto from "./pages/NovoProduto";
 import ProdutoDetalhe from "./pages/ProdutoDetalhe";
@@ -15,6 +16,7 @@ import Financeiro from "./pages/Financeiro";
 import NovaConta from "./pages/NovaConta";
 import NovaCompra from "./pages/NovaCompra";
 import Relatorios from "./pages/Relatorios";
+import Backup from "./pages/Backup";
 import Instalar from "./pages/Instalar";
 import NotFound from "./pages/NotFound";
 
@@ -30,6 +32,7 @@ const App = () => (
           <Route path="/" element={<Dashboard />} />
           <Route path="/vendas" element={<Vendas />} />
           <Route path="/vendas/nova" element={<NovaVenda />} />
+          <Route path="/vendas/:id" element={<VendaDetalhe />} />
           <Route path="/estoque" element={<Estoque />} />
           <Route path="/estoque/novo" element={<NovoProduto />} />
           <Route path="/estoque/:id" element={<ProdutoDetalhe />} />
@@ -37,6 +40,7 @@ const App = () => (
           <Route path="/financeiro" element={<Financeiro />} />
           <Route path="/financeiro/nova-conta" element={<NovaConta />} />
           <Route path="/relatorios" element={<Relatorios />} />
+          <Route path="/backup" element={<Backup />} />
           <Route path="/instalar" element={<Instalar />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

@@ -92,9 +92,10 @@ export default function Vendas() {
           filteredSales.map((sale) => (
             <Card 
               key={sale.id} 
-              className={`transition-all hover:border-primary/30 ${
+              className={`transition-all hover:border-primary/30 cursor-pointer ${
                 sale.status === "pendente" ? "border-warning/50 bg-warning/5" : ""
               }`}
+              onClick={() => navigate(`/vendas/${sale.id}`)}
             >
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
@@ -121,7 +122,10 @@ export default function Vendas() {
                         size="sm"
                         variant="outline"
                         className="text-xs h-7 border-success text-success hover:bg-success/10"
-                        onClick={() => markAsPaid.mutate(sale.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          markAsPaid.mutate(sale.id);
+                        }}
                         disabled={markAsPaid.isPending}
                       >
                         <Check className="w-3 h-3 mr-1" />

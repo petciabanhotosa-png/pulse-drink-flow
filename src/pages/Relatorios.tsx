@@ -4,12 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useSales, useMonthSales } from "@/hooks/useSales";
 import { useProducts } from "@/hooks/useProducts";
 import { useCashFlow } from "@/hooks/useCashFlow";
 import { useBills } from "@/hooks/useBills";
+import { useProductSalesReport, useMonthlyInvestment } from "@/hooks/useSaleItems";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
-import { TrendingUp, DollarSign, Package, Receipt, Trophy } from "lucide-react";
+import { TrendingUp, DollarSign, Package, Receipt, Trophy, ShoppingCart, Download } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -21,11 +24,14 @@ function formatCurrency(value: number) {
 const COLORS = ["hsl(150, 100%, 50%)", "hsl(200, 100%, 50%)", "hsl(280, 100%, 50%)", "hsl(45, 100%, 50%)"];
 
 export default function Relatorios() {
+  const navigate = useNavigate();
   const { data: allSales = [] } = useSales();
   const { data: monthSales = [] } = useMonthSales();
   const { data: products = [] } = useProducts();
   const { data: cashFlow = [] } = useCashFlow();
   const { data: bills = [] } = useBills();
+  const { data: productSalesReport = [] } = useProductSalesReport();
+  const { data: monthlyInvestment = 0 } = useMonthlyInvestment();
 
   // Cálculos de vendas
   const totalSold = monthSales.reduce((acc, s) => acc + s.total_amount, 0);
@@ -61,42 +67,44 @@ export default function Relatorios() {
   const totalPaidBills = paidBills.reduce((acc, b) => acc + b.amount, 0);
   const totalPendingBills = pendingBills.reduce((acc, b) => acc + b.amount, 0);
 
-  // Top produtos por lucro (mock - normalmente viria do banco)
-  const productsByProfit = products
-    .map((p) => ({
-      name: p.name.slice(0, 15),
-      profit: p.sale_price - p.cost_price,
-      margin: ((p.sale_price - p.cost_price) / p.sale_price) * 100,
-    }))
-    .sort((a, b) => b.profit - a.profit)
-    .slice(0, 5);
+  // Top 5 produtos mais vendidos
+  const topProducts = productSalesReport.slice(0, 5);
 
   return (
     <AppLayout>
-      <PageHeader title="Relatórios" subtitle="Análise do seu negócio" />
+      <PageHeader 
+        title="Relatórios" 
+        subtitle="Análise do seu negócio"
+        action={
+          <Button size="sm" variant="outline" onClick={() => navigate("/backup")}>
+            <Download className="w-4 h-4 mr-1" />
+            Backup
+          </Button>
+        }
+      />
 
       <div className="p-4 pb-24">
         <Tabs defaultValue="vendas" className="w-full">
           <TabsList className="w-full grid grid-cols-5 h-auto mb-2">
             <TabsTrigger value="vendas" className="flex flex-col items-center gap-1 text-[10px] py-2 px-1">
               <DollarSign className="w-4 h-4" />
-              <span className="truncate w-full text-center">Vendas</span>
+              <span>Vendas</span>
+            </TabsTrigger>
+            <TabsTrigger value="produtos" className="flex flex-col items-center gap-1 text-[10px] py-2 px-1">
+              <ShoppingCart className="w-4 h-4" />
+              <span>Produtos</span>
             </TabsTrigger>
             <TabsTrigger value="lucro" className="flex flex-col items-center gap-1 text-[10px] py-2 px-1">
               <TrendingUp className="w-4 h-4" />
-              <span className="truncate w-full text-center">Lucro</span>
+              <span>Lucro</span>
             </TabsTrigger>
             <TabsTrigger value="estoque" className="flex flex-col items-center gap-1 text-[10px] py-2 px-1">
               <Package className="w-4 h-4" />
-              <span className="truncate w-full text-center">Estoque</span>
+              <span>Estoque</span>
             </TabsTrigger>
             <TabsTrigger value="financeiro" className="flex flex-col items-center gap-1 text-[10px] py-2 px-1">
               <Receipt className="w-4 h-4" />
-              <span className="truncate w-full text-center">Finanças</span>
-            </TabsTrigger>
-            <TabsTrigger value="ranking" className="flex flex-col items-center gap-1 text-[10px] py-2 px-1">
-              <Trophy className="w-4 h-4" />
-              <span className="truncate w-full text-center">Ranking</span>
+              <span>Finanças</span>
             </TabsTrigger>
           </TabsList>
 
@@ -160,6 +168,80 @@ export default function Relatorios() {
             </Card>
           </TabsContent>
 
+          {/* RELATÓRIO DE PRODUTOS VENDIDOS */}
+          <TabsContent value="produtos" className="space-y-4 mt-4">
+            <div className="grid grid-cols-2 gap-3">
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Lucro do Mês</p>
+                  <p className="text-lg font-bold text-primary">{formatCurrency(totalProfit)}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-destructive/30 bg-destructive/5">
+                <CardContent className="p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Investido</p>
+                  <p className="text-lg font-bold text-destructive">{formatCurrency(monthlyInvestment)}</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-primary" />
+                  Produtos Mais Vendidos no Mês
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {topProducts.length > 0 ? (
+                  topProducts.map((product, index) => (
+                    <div key={product.product_id} className="flex items-center gap-3">
+                      <Badge 
+                        variant={index === 0 ? "default" : "secondary"}
+                        className={index === 0 ? "glow-neon" : ""}
+                      >
+                        #{index + 1}
+                      </Badge>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{product.product_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {product.total_quantity} un vendidas
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">{formatCurrency(product.total_revenue)}</p>
+                        <p className="text-xs text-primary">+{formatCurrency(product.total_profit)}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center py-4 text-muted-foreground text-sm">
+                    Nenhuma venda no mês
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {productSalesReport.length > 5 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Todos os Produtos Vendidos</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 max-h-60 overflow-y-auto">
+                  {productSalesReport.map((product) => (
+                    <div key={product.product_id} className="flex items-center justify-between text-sm">
+                      <span className="truncate flex-1">{product.product_name}</span>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{product.total_quantity} un</Badge>
+                        <span className="text-primary font-medium">{formatCurrency(product.total_profit)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
           {/* RELATÓRIO DE LUCRO */}
           <TabsContent value="lucro" className="space-y-4 mt-4">
             <div className="grid grid-cols-2 gap-3">
@@ -184,10 +266,14 @@ export default function Relatorios() {
                 <CardTitle className="text-sm">Lucro por Produto</CardTitle>
               </CardHeader>
               <CardContent>
-                {productsByProfit.length > 0 ? (
+                {topProducts.length > 0 ? (
                   <div className="h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={productsByProfit} layout="vertical" margin={{ left: 0 }}>
+                      <BarChart 
+                        data={topProducts.map(p => ({ name: p.product_name.slice(0, 12), profit: p.total_profit }))} 
+                        layout="vertical" 
+                        margin={{ left: 0 }}
+                      >
                         <XAxis type="number" tickFormatter={(v) => `R$${v}`} />
                         <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 10 }} />
                         <Tooltip formatter={(value: number) => formatCurrency(value)} />
@@ -197,7 +283,7 @@ export default function Relatorios() {
                   </div>
                 ) : (
                   <p className="text-center py-4 text-muted-foreground text-sm">
-                    Cadastre produtos para ver o relatório
+                    Sem vendas no período
                   </p>
                 )}
               </CardContent>
@@ -300,73 +386,6 @@ export default function Relatorios() {
                   <span className="text-sm">Contas Pendentes</span>
                   <span className="text-sm font-medium text-warning">{formatCurrency(totalPendingBills)}</span>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* RANKINGS */}
-          <TabsContent value="ranking" className="space-y-4 mt-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-primary" />
-                  Produtos Mais Lucrativos
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {productsByProfit.length > 0 ? (
-                  productsByProfit.map((product, index) => (
-                    <div key={product.name} className="flex items-center gap-3">
-                      <Badge 
-                        variant={index === 0 ? "default" : "secondary"}
-                        className={index === 0 ? "glow-neon" : ""}
-                      >
-                        #{index + 1}
-                      </Badge>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{product.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Margem: {product.margin.toFixed(1)}%
-                        </p>
-                      </div>
-                      <span className="text-sm font-bold text-primary">
-                        {formatCurrency(product.profit)}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-center py-4 text-muted-foreground text-sm">
-                    Cadastre produtos para ver o ranking
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Categorias Mais Rentáveis</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {Object.entries(
-                  products.reduce((acc, p) => {
-                    const profit = p.sale_price - p.cost_price;
-                    acc[p.category] = (acc[p.category] || 0) + profit;
-                    return acc;
-                  }, {} as Record<string, number>)
-                )
-                  .sort(([, a], [, b]) => b - a)
-                  .slice(0, 5)
-                  .map(([category, profit], index) => (
-                    <div key={category} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{index + 1}</Badge>
-                        <span className="text-sm">{category}</span>
-                      </div>
-                      <span className="text-sm font-medium text-primary">
-                        {formatCurrency(profit)}
-                      </span>
-                    </div>
-                  ))}
               </CardContent>
             </Card>
           </TabsContent>

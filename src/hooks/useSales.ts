@@ -3,6 +3,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { Sale, SaleItem, SaleItemInput, PaymentMethod } from "@/types/database";
 import { toast } from "@/hooks/use-toast";
 
+interface SaleItemWithProduct {
+  id: string;
+  sale_id: string;
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  unit_cost: number;
+  subtotal: number;
+  profit: number;
+  created_at: string;
+  product_name: string;
+}
+
+interface SaleWithDetails extends Sale {
+  customer: { name: string } | null;
+  items: SaleItemWithProduct[];
+}
+
 export function useSales() {
   return useQuery({
     queryKey: ["sales"],
@@ -15,6 +33,55 @@ export function useSales() {
       if (error) throw error;
       return data as Sale[];
     },
+  });
+}
+
+export function useSaleById(saleId: string) {
+  return useQuery({
+    queryKey: ["sales", saleId],
+    queryFn: async () => {
+      // Buscar venda com cliente
+      const { data: sale, error: saleError } = await supabase
+        .from("sales")
+        .select(`
+          *,
+          customers:customer_id (name)
+        `)
+        .eq("id", saleId)
+        .single();
+
+      if (saleError) throw saleError;
+
+      // Buscar itens da venda
+      const { data: items, error: itemsError } = await supabase
+        .from("sale_items")
+        .select(`
+          *,
+          products:product_id (name)
+        `)
+        .eq("sale_id", saleId);
+
+      if (itemsError) throw itemsError;
+
+      const saleWithDetails: SaleWithDetails = {
+        id: sale.id,
+        customer_id: sale.customer_id,
+        total_amount: sale.total_amount,
+        total_profit: sale.total_profit,
+        discount_amount: sale.discount_amount,
+        payment_method: sale.payment_method as "dinheiro" | "pix" | "credito" | "debito",
+        status: sale.status as "pago" | "pendente",
+        created_at: sale.created_at,
+        customer: sale.customers as { name: string } | null,
+        items: items.map((item) => ({
+          ...item,
+          product_name: (item.products as { name: string })?.name || "Produto removido",
+        })),
+      };
+
+      return saleWithDetails;
+    },
+    enabled: !!saleId,
   });
 }
 
