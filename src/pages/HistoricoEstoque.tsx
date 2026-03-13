@@ -38,8 +38,8 @@ export default function HistoricoEstoque() {
   const [endDate, setEndDate] = useState<string>("");
 
   const { data: movements = [], isLoading } = useInventoryMovements({
-    productId: productId || undefined,
-    movementType: movementType || undefined,
+    productId: productId && productId !== "all" ? productId : undefined,
+    movementType: movementType && movementType !== "all" ? movementType : undefined,
     startDate: startDate ? new Date(startDate).toISOString() : undefined,
     endDate: endDate ? new Date(endDate + "T23:59:59").toISOString() : undefined,
   });
