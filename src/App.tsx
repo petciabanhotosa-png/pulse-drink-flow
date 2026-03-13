@@ -15,6 +15,7 @@ import ProdutoDetalhe from "./pages/ProdutoDetalhe";
 import Financeiro from "./pages/Financeiro";
 import NovaConta from "./pages/NovaConta";
 import NovaCompra from "./pages/NovaCompra";
+import HistoricoEstoque from "./pages/HistoricoEstoque";
 import Relatorios from "./pages/Relatorios";
 import Backup from "./pages/Backup";
 import Instalar from "./pages/Instalar";
@@ -37,6 +38,7 @@ const App = () => (
           <Route path="/estoque/novo" element={<NovoProduto />} />
           <Route path="/estoque/:id" element={<ProdutoDetalhe />} />
           <Route path="/estoque/compra" element={<NovaCompra />} />
+          <Route path="/estoque/historico" element={<HistoricoEstoque />} />
           <Route path="/financeiro" element={<Financeiro />} />
           <Route path="/financeiro/nova-conta" element={<NovaConta />} />
           <Route path="/relatorios" element={<Relatorios />} />

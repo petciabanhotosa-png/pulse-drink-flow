@@ -50,6 +50,32 @@ export interface Purchase {
   created_at: string;
 }
 
+export interface PurchaseBatch {
+  id: string;
+  product_id: string;
+  initial_quantity: number;
+  remaining_quantity: number;
+  purchase_price: number;
+  purchase_date: string;
+  supplier: string | null;
+  purchase_id: string | null;
+  created_at: string;
+}
+
+export interface InventoryMovement {
+  id: string;
+  product_id: string;
+  batch_id: string | null;
+  movement_type: 'entrada' | 'venda' | 'ajuste' | 'perda';
+  quantity: number;
+  unit_price: number;
+  origin: 'compra' | 'venda' | 'ajuste';
+  reference_id: string | null;
+  movement_date: string;
+  resulting_stock: number;
+  created_at: string;
+}
+
 export interface CashFlow {
   id: string;
   type: 'entrada' | 'saida';

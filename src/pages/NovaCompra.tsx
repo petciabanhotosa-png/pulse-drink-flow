@@ -30,6 +30,7 @@ export default function NovaCompra() {
     quantity: "",
     unit_cost: "",
     payment_method: "dinheiro" as PaymentMethod,
+    supplier: "",
   });
 
   const quantity = parseInt(form.quantity) || 0;
@@ -43,12 +44,10 @@ export default function NovaCompra() {
       toast({ title: "Selecione um produto", variant: "destructive" });
       return;
     }
-
     if (quantity <= 0) {
       toast({ title: "Informe a quantidade", variant: "destructive" });
       return;
     }
-
     if (unitCost <= 0) {
       toast({ title: "Informe o custo unitário", variant: "destructive" });
       return;
@@ -59,6 +58,7 @@ export default function NovaCompra() {
       quantity,
       unit_cost: unitCost,
       payment_method: form.payment_method,
+      supplier: form.supplier || undefined,
     });
 
     navigate("/estoque");
@@ -66,7 +66,7 @@ export default function NovaCompra() {
 
   return (
     <AppLayout>
-      <PageHeader title="Nova Compra" subtitle="Entrada de estoque" showBack />
+      <PageHeader title="Nova Compra" subtitle="Entrada de estoque (novo lote PEPS)" showBack />
 
       <form onSubmit={handleSubmit} className="p-4 space-y-4">
         <Card>
@@ -109,6 +109,16 @@ export default function NovaCompra() {
                   onChange={(e) => setForm({ ...form, unit_cost: e.target.value })}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="supplier">Fornecedor (opcional)</Label>
+              <Input
+                id="supplier"
+                placeholder="Nome do fornecedor"
+                value={form.supplier}
+                onChange={(e) => setForm({ ...form, supplier: e.target.value })}
+              />
             </div>
 
             {totalAmount > 0 && (
