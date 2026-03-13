@@ -38,6 +38,7 @@ const App = () => (
           <Route path="/estoque/novo" element={<NovoProduto />} />
           <Route path="/estoque/:id" element={<ProdutoDetalhe />} />
           <Route path="/estoque/compra" element={<NovaCompra />} />
+          <Route path="/estoque/historico" element={<HistoricoEstoque />} />
           <Route path="/financeiro" element={<Financeiro />} />
           <Route path="/financeiro/nova-conta" element={<NovaConta />} />
           <Route path="/relatorios" element={<Relatorios />} />

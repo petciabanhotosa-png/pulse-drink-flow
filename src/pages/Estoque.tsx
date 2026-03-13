@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Package } from "lucide-react";
+import { Plus, Search, Package, History } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -39,15 +39,20 @@ export default function Estoque() {
         title="Estoque"
         subtitle={`${products.length} produtos cadastrados`}
         action={
-          <Button size="sm" onClick={() => navigate("/estoque/novo")}>
-            <Plus className="w-4 h-4 mr-1" />
-            Novo
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => navigate("/estoque/historico")}>
+              <History className="w-4 h-4 mr-1" />
+              Histórico
+            </Button>
+            <Button size="sm" onClick={() => navigate("/estoque/novo")}>
+              <Plus className="w-4 h-4 mr-1" />
+              Novo
+            </Button>
+          </div>
         }
       />
 
       <div className="p-4 space-y-4">
-        {/* Busca */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -58,12 +63,9 @@ export default function Estoque() {
           />
         </div>
 
-        {/* Lista de produtos */}
         <div className="space-y-3">
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Carregando...
-            </div>
+            <div className="text-center py-8 text-muted-foreground">Carregando...</div>
           ) : filteredProducts.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -94,7 +96,7 @@ export default function Estoque() {
                           <span>Venda: {formatCurrency(product.sale_price)}</span>
                         </div>
                         <p className="text-xs text-primary mt-1">
-                          Lucro: {formatCurrency(profit)} ({((profit / product.sale_price) * 100).toFixed(0)}%)
+                          Lucro: {formatCurrency(profit)} ({product.sale_price > 0 ? ((profit / product.sale_price) * 100).toFixed(0) : 0}%)
                         </p>
                       </div>
                       <div className="text-right shrink-0">
