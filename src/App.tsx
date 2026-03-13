@@ -15,6 +15,7 @@ import ProdutoDetalhe from "./pages/ProdutoDetalhe";
 import Financeiro from "./pages/Financeiro";
 import NovaConta from "./pages/NovaConta";
 import NovaCompra from "./pages/NovaCompra";
+import HistoricoEstoque from "./pages/HistoricoEstoque";
 import Relatorios from "./pages/Relatorios";
 import Backup from "./pages/Backup";
 import Instalar from "./pages/Instalar";
