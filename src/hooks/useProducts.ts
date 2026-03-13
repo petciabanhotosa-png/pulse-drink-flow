@@ -25,7 +25,6 @@ export function useLowStockProducts() {
       const { data, error } = await supabase
         .from("products")
         .select("*")
-        .or("stock_quantity.lte.min_stock")
         .order("stock_quantity");
       
       if (error) throw error;
