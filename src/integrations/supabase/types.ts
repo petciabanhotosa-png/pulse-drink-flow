@@ -101,6 +101,63 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_movements: {
+        Row: {
+          batch_id: string | null
+          created_at: string
+          id: string
+          movement_date: string
+          movement_type: string
+          origin: string
+          product_id: string
+          quantity: number
+          reference_id: string | null
+          resulting_stock: number
+          unit_price: number
+        }
+        Insert: {
+          batch_id?: string | null
+          created_at?: string
+          id?: string
+          movement_date?: string
+          movement_type: string
+          origin: string
+          product_id: string
+          quantity: number
+          reference_id?: string | null
+          resulting_stock?: number
+          unit_price?: number
+        }
+        Update: {
+          batch_id?: string | null
+          created_at?: string
+          id?: string
+          movement_date?: string
+          movement_type?: string
+          origin?: string
+          product_id?: string
+          quantity?: number
+          reference_id?: string | null
+          resulting_stock?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string
@@ -136,6 +193,57 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      purchase_batches: {
+        Row: {
+          created_at: string
+          id: string
+          initial_quantity: number
+          product_id: string
+          purchase_date: string
+          purchase_id: string | null
+          purchase_price: number
+          remaining_quantity: number
+          supplier: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          initial_quantity: number
+          product_id: string
+          purchase_date?: string
+          purchase_id?: string | null
+          purchase_price: number
+          remaining_quantity: number
+          supplier?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          initial_quantity?: number
+          product_id?: string
+          purchase_date?: string
+          purchase_id?: string | null
+          purchase_price?: number
+          remaining_quantity?: number
+          supplier?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_batches_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_batches_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "purchases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       purchases: {
         Row: {
