@@ -78,19 +78,15 @@ export function useCreatePurchase() {
 
       if (batchError) throw batchError;
 
-      // 3. Atualizar estoque do produto (SEM alterar cost_price de compras anteriores)
+      // 3. Estoque é sincronizado automaticamente via trigger no banco
+      //    quando um novo lote é inserido. Apenas lemos o valor atualizado.
       const { data: product } = await supabase
         .from("products")
         .select("stock_quantity")
         .eq("id", product_id)
         .single();
 
-      const newStock = (product?.stock_quantity || 0) + quantity;
-
-      await supabase
-        .from("products")
-        .update({ stock_quantity: newStock })
-        .eq("id", product_id);
+      const newStock = product?.stock_quantity ?? quantity;
 
       // 4. Registrar movimentação de estoque
       await supabase.from("inventory_movements").insert({

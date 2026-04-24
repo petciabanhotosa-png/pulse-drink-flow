@@ -1,11 +1,22 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, Clock, User } from "lucide-react";
+import { ArrowLeft, Check, Clock, User, Pencil, Trash2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { useSaleById, useMarkSaleAsPaid } from "@/hooks/useSales";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useSaleById, useMarkSaleAsPaid, useDeletePendingSale } from "@/hooks/useSales";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -29,6 +40,7 @@ export default function VendaDetalhe() {
   const navigate = useNavigate();
   const { data: sale, isLoading } = useSaleById(id!);
   const markAsPaid = useMarkSaleAsPaid();
+  const deleteSale = useDeletePendingSale();
 
   if (isLoading) {
     return (
@@ -161,19 +173,58 @@ export default function VendaDetalhe() {
           </CardContent>
         </Card>
 
-        {/* Ação para marcar como pago */}
+        {/* Ações para venda pendente */}
         {sale.status === "pendente" && (
-          <Button
-            className="w-full glow-neon"
-            onClick={() => {
-              markAsPaid.mutate(sale.id);
-              navigate("/vendas");
-            }}
-            disabled={markAsPaid.isPending}
-          >
-            <Check className="w-4 h-4 mr-2" />
-            Marcar como Pago
-          </Button>
+          <div className="space-y-2">
+            <Button
+              className="w-full glow-neon"
+              onClick={() => {
+                markAsPaid.mutate(sale.id);
+                navigate("/vendas");
+              }}
+              disabled={markAsPaid.isPending}
+            >
+              <Check className="w-4 h-4 mr-2" />
+              Marcar como Pago
+            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/vendas/${sale.id}/editar`)}
+              >
+                <Pencil className="w-4 h-4 mr-2" />
+                Editar
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="text-destructive border-destructive/50 hover:bg-destructive/10">
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Excluir
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir venda pendente?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      O estoque dos produtos será restaurado automaticamente. Esta ação não pode ser desfeita.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={async () => {
+                        await deleteSale.mutateAsync(sale.id);
+                        navigate("/vendas");
+                      }}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      Excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
         )}
       </div>
     </AppLayout>

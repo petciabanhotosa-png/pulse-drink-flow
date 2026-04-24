@@ -1,8 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
-import { SaleItemInput } from "@/types/database";
 
 /**
  * Consume stock from oldest batches first (FIFO/PEPS).
+ * The product.stock_quantity is auto-synced by a database trigger
+ * when batches.remaining_quantity changes.
  * Returns the weighted average cost for profit calculation.
  */
 export async function consumeBatchesFIFO(
@@ -30,7 +31,7 @@ export async function consumeBatchesFIFO(
     const consume = Math.min(remaining, batch.remaining_quantity);
     totalCost += consume * batch.purchase_price;
 
-    // Update batch remaining quantity
+    // Update batch remaining quantity (trigger will sync product stock)
     const { error: updateError } = await supabase
       .from("purchase_batches")
       .update({ remaining_quantity: batch.remaining_quantity - consume })
@@ -43,7 +44,7 @@ export async function consumeBatchesFIFO(
   }
 
   if (remaining > 0) {
-    // Not enough batches — use product cost_price as fallback for unbatched stock
+    // Not enough batches — fallback to product cost_price
     const { data: product } = await supabase
       .from("products")
       .select("cost_price")
@@ -54,20 +55,14 @@ export async function consumeBatchesFIFO(
     consumptions.push({ batchId: "", qty: remaining, price: product?.cost_price || 0 });
   }
 
-  // Get current stock for resulting_stock calculation
+  // Read the up-to-date stock (already synced by trigger) for movement log
   const { data: product } = await supabase
     .from("products")
     .select("stock_quantity")
     .eq("id", productId)
     .single();
 
-  const newStock = (product?.stock_quantity || 0) - quantityNeeded;
-
-  // Update product stock
-  await supabase
-    .from("products")
-    .update({ stock_quantity: Math.max(0, newStock) })
-    .eq("id", productId);
+  const newStock = product?.stock_quantity ?? 0;
 
   // Record inventory movements for each batch consumed
   for (const c of consumptions) {
@@ -80,10 +75,76 @@ export async function consumeBatchesFIFO(
         unit_price: c.price,
         origin: "venda",
         reference_id: saleId,
-        resulting_stock: Math.max(0, newStock),
+        resulting_stock: newStock,
       });
     }
   }
 
   return { totalCost, batchConsumptions: consumptions };
+}
+
+/**
+ * Restore stock to batches when a pending sale is edited or deleted.
+ * Returns quantities to the most recent batches consumed (LIFO of restoration).
+ * Uses inventory_movements log to know which batches were used.
+ */
+export async function restoreBatchesFromSale(saleId: string): Promise<void> {
+  // Find all "venda" movements for this sale
+  const { data: movements, error } = await supabase
+    .from("inventory_movements")
+    .select("*")
+    .eq("reference_id", saleId)
+    .eq("movement_type", "venda");
+
+  if (error) throw error;
+  if (!movements || movements.length === 0) return;
+
+  // Restore each batch
+  for (const mv of movements) {
+    if (mv.batch_id) {
+      const { data: batch } = await supabase
+        .from("purchase_batches")
+        .select("remaining_quantity, initial_quantity")
+        .eq("id", mv.batch_id)
+        .single();
+      
+      if (batch) {
+        const restored = Math.min(
+          batch.remaining_quantity + mv.quantity,
+          batch.initial_quantity
+        );
+        await supabase
+          .from("purchase_batches")
+          .update({ remaining_quantity: restored })
+          .eq("id", mv.batch_id);
+      }
+    }
+  }
+
+  // Record reversal movement (audit trail) — use "ajuste" for compensation entry
+  const { data: product } = await supabase
+    .from("products")
+    .select("stock_quantity, id")
+    .eq("id", movements[0].product_id)
+    .single();
+
+  // Insert one reversal per movement to keep audit symmetrical
+  for (const mv of movements) {
+    const { data: prod } = await supabase
+      .from("products")
+      .select("stock_quantity")
+      .eq("id", mv.product_id)
+      .single();
+
+    await supabase.from("inventory_movements").insert({
+      product_id: mv.product_id,
+      batch_id: mv.batch_id,
+      movement_type: "ajuste",
+      quantity: mv.quantity,
+      unit_price: mv.unit_price,
+      origin: "ajuste",
+      reference_id: saleId,
+      resulting_stock: prod?.stock_quantity ?? 0,
+    });
+  }
 }

@@ -5,13 +5,15 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSales, useMonthSales } from "@/hooks/useSales";
 import { useProducts } from "@/hooks/useProducts";
 import { useCashFlow } from "@/hooks/useCashFlow";
 import { useBills } from "@/hooks/useBills";
 import { useProductSalesReport, useMonthlyInvestment } from "@/hooks/useSaleItems";
+import { useMonthlyReport } from "@/hooks/useMonthlyReport";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
-import { TrendingUp, DollarSign, Package, Receipt, Trophy, ShoppingCart, Download } from "lucide-react";
+import { TrendingUp, DollarSign, Package, Receipt, Trophy, ShoppingCart, Download, CalendarRange } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 function formatCurrency(value: number) {
@@ -32,6 +34,26 @@ export default function Relatorios() {
   const { data: bills = [] } = useBills();
   const { data: productSalesReport = [] } = useProductSalesReport();
   const { data: monthlyInvestment = 0 } = useMonthlyInvestment();
+
+  // Mensal: estado de mês/ano selecionados (padrão: mês atual)
+  const today = new Date();
+  const [selectedYear, setSelectedYear] = useState(today.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
+  const { data: monthlyReport, isLoading: monthlyLoading } = useMonthlyReport(
+    selectedYear,
+    selectedMonth
+  );
+
+  // Lista de meses disponíveis (12 meses retroativos)
+  const monthOptions = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    return {
+      value: `${d.getFullYear()}-${d.getMonth()}`,
+      year: d.getFullYear(),
+      month: d.getMonth(),
+      label: d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
+    };
+  });
 
   // Cálculos de vendas
   const totalSold = monthSales.reduce((acc, s) => acc + s.total_amount, 0);
@@ -84,8 +106,12 @@ export default function Relatorios() {
       />
 
       <div className="p-4 pb-24">
-        <Tabs defaultValue="vendas" className="w-full">
-          <TabsList className="w-full grid grid-cols-5 h-auto mb-2">
+        <Tabs defaultValue="mensal" className="w-full">
+          <TabsList className="w-full grid grid-cols-6 h-auto mb-2">
+            <TabsTrigger value="mensal" className="flex flex-col items-center gap-1 text-[10px] py-2 px-1">
+              <CalendarRange className="w-4 h-4" />
+              <span>Mensal</span>
+            </TabsTrigger>
             <TabsTrigger value="vendas" className="flex flex-col items-center gap-1 text-[10px] py-2 px-1">
               <DollarSign className="w-4 h-4" />
               <span>Vendas</span>
@@ -107,6 +133,123 @@ export default function Relatorios() {
               <span>Finanças</span>
             </TabsTrigger>
           </TabsList>
+
+          {/* RELATÓRIO MENSAL */}
+          <TabsContent value="mensal" className="space-y-4 mt-4">
+            <Card>
+              <CardContent className="p-3">
+                <Select
+                  value={`${selectedYear}-${selectedMonth}`}
+                  onValueChange={(v) => {
+                    const [y, m] = v.split("-").map(Number);
+                    setSelectedYear(y);
+                    setSelectedMonth(m);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o mês" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {monthOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        <span className="capitalize">{opt.label}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+
+            {monthlyLoading || !monthlyReport ? (
+              <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <Card className="border-primary/30 bg-primary/5">
+                    <CardContent className="p-3 text-center">
+                      <p className="text-xs text-muted-foreground">Total Vendido</p>
+                      <p className="text-lg font-bold text-primary">
+                        {formatCurrency(monthlyReport.totalSold)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-primary/30 bg-primary/5">
+                    <CardContent className="p-3 text-center">
+                      <p className="text-xs text-muted-foreground">Lucro do Mês</p>
+                      <p className="text-lg font-bold text-primary">
+                        {formatCurrency(monthlyReport.totalProfit)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-3 text-center">
+                      <p className="text-xs text-muted-foreground">Vendas</p>
+                      <p className="text-lg font-bold">{monthlyReport.totalSales}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-destructive/30 bg-destructive/5">
+                    <CardContent className="p-3 text-center">
+                      <p className="text-xs text-muted-foreground">Despesas Total</p>
+                      <p className="text-lg font-bold text-destructive">
+                        {formatCurrency(monthlyReport.totalExpenses)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card className="col-span-2 border-warning/30 bg-warning/5">
+                    <CardContent className="p-3 text-center">
+                      <p className="text-xs text-muted-foreground">Investido em Compras</p>
+                      <p className="text-lg font-bold text-warning">
+                        {formatCurrency(monthlyReport.totalInvestment)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Trophy className="w-4 h-4 text-primary" />
+                      Cervejas vendidas no mês
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {monthlyReport.productSales.length === 0 ? (
+                      <p className="text-center py-4 text-muted-foreground text-sm">
+                        Nenhuma venda registrada neste mês
+                      </p>
+                    ) : (
+                      monthlyReport.productSales.map((p, i) => (
+                        <div
+                          key={p.product_id}
+                          className="flex items-center gap-3 py-1 border-b border-border last:border-0"
+                        >
+                          <Badge
+                            variant={i === 0 ? "default" : "secondary"}
+                            className="shrink-0"
+                          >
+                            #{i + 1}
+                          </Badge>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {p.product_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {p.total_quantity} un · {formatCurrency(p.total_revenue)}
+                            </p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-xs text-primary font-medium">
+                              +{formatCurrency(p.total_profit)}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </TabsContent>
 
           {/* RELATÓRIO DE VENDAS */}
           <TabsContent value="vendas" className="space-y-4 mt-4">
