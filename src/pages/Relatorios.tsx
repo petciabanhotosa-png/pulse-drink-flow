@@ -5,13 +5,15 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSales, useMonthSales } from "@/hooks/useSales";
 import { useProducts } from "@/hooks/useProducts";
 import { useCashFlow } from "@/hooks/useCashFlow";
 import { useBills } from "@/hooks/useBills";
 import { useProductSalesReport, useMonthlyInvestment } from "@/hooks/useSaleItems";
+import { useMonthlyReport } from "@/hooks/useMonthlyReport";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
-import { TrendingUp, DollarSign, Package, Receipt, Trophy, ShoppingCart, Download } from "lucide-react";
+import { TrendingUp, DollarSign, Package, Receipt, Trophy, ShoppingCart, Download, CalendarRange } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 function formatCurrency(value: number) {
