@@ -1,11 +1,22 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, Clock, User } from "lucide-react";
+import { ArrowLeft, Check, Clock, User, Pencil, Trash2 } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { useSaleById, useMarkSaleAsPaid } from "@/hooks/useSales";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useSaleById, useMarkSaleAsPaid, useDeletePendingSale } from "@/hooks/useSales";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -29,6 +40,7 @@ export default function VendaDetalhe() {
   const navigate = useNavigate();
   const { data: sale, isLoading } = useSaleById(id!);
   const markAsPaid = useMarkSaleAsPaid();
+  const deleteSale = useDeletePendingSale();
 
   if (isLoading) {
     return (
