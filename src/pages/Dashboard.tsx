@@ -4,13 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { KPICard } from "@/components/dashboard/KPICard";
-import { LowStockAlert } from "@/components/dashboard/LowStockAlert";
 import { SalesChart } from "@/components/dashboard/SalesChart";
+import { InvestmentChart } from "@/components/dashboard/InvestmentChart";
 import { DashboardBanner } from "@/components/dashboard/DashboardBanner";
 import { Button } from "@/components/ui/button";
 import { useTodaySales, useMonthSales, useSales } from "@/hooks/useSales";
-import { useLowStockProducts } from "@/hooks/useProducts";
 import { useCashBalance } from "@/hooks/useCashFlow";
+import { useCurrentInvestment } from "@/hooks/useInvestment";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -25,8 +25,8 @@ export default function Dashboard() {
   const { data: todaySales = [] } = useTodaySales();
   const { data: monthSales = [] } = useMonthSales();
   const { data: allSales = [] } = useSales();
-  const { data: lowStockProducts = [] } = useLowStockProducts();
   const { data: cashBalance = 0 } = useCashBalance();
+  const { data: investment } = useCurrentInvestment();
 
   const isStandalone = typeof window !== "undefined" && window.matchMedia("(display-mode: standalone)").matches;
 
@@ -130,11 +130,14 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Alerta de estoque baixo */}
-        <LowStockAlert products={lowStockProducts} />
-
         {/* Gráfico de vendas */}
         <SalesChart data={chartData} period={chartPeriod} onPeriodChange={setChartPeriod} />
+
+        {/* Gráfico de valor investido */}
+        <InvestmentChart
+          totalInvested={investment?.totalInvested ?? 0}
+          byProduct={investment?.byProduct ?? []}
+        />
       </div>
     </AppLayout>
   );
