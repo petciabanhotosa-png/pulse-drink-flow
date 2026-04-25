@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { BottomNav } from "./BottomNav";
 import { FloatingActionButton } from "./FloatingActionButton";
+import { PWAUpdateBanner } from "@/components/PWAUpdateBanner";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -9,6 +10,7 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   return (
     <div className="min-h-screen bg-background pb-20">
+      <PWAUpdateBanner />
       <main className="max-w-lg mx-auto">
         {children}
       </main>
