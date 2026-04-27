@@ -8,6 +8,24 @@ export function PWAUpdateBanner() {
   const [updateSW, setUpdateSW] = useState<((reload?: boolean) => Promise<void>) | null>(null);
 
   useEffect(() => {
+    const isInIframe = (() => {
+      try {
+        return window.self !== window.top;
+      } catch {
+        return true;
+      }
+    })();
+    const isPreviewHost =
+      window.location.hostname.includes("id-preview--") ||
+      window.location.hostname.includes("lovableproject.com");
+
+    if (isInIframe || isPreviewHost) {
+      navigator.serviceWorker?.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => registration.unregister());
+      });
+      return;
+    }
+
     const update = registerSW({
       immediate: true,
       onNeedRefresh() {

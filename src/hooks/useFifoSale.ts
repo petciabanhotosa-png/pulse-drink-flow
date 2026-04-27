@@ -44,15 +44,7 @@ export async function consumeBatchesFIFO(
   }
 
   if (remaining > 0) {
-    // Not enough batches — fallback to product cost_price
-    const { data: product } = await supabase
-      .from("products")
-      .select("cost_price")
-      .eq("id", productId)
-      .single();
-    
-    totalCost += remaining * (product?.cost_price || 0);
-    consumptions.push({ batchId: "", qty: remaining, price: product?.cost_price || 0 });
+    throw new Error("Estoque insuficiente nos lotes deste produto");
   }
 
   // Read the up-to-date stock (already synced by trigger) for movement log
@@ -89,18 +81,40 @@ export async function consumeBatchesFIFO(
  * Uses inventory_movements log to know which batches were used.
  */
 export async function restoreBatchesFromSale(saleId: string): Promise<void> {
-  // Find all "venda" movements for this sale
+  const { data: currentItems, error: itemsError } = await supabase
+    .from("sale_items")
+    .select("product_id, quantity")
+    .eq("sale_id", saleId);
+
+  if (itemsError) throw itemsError;
+  if (!currentItems || currentItems.length === 0) return;
+
+  const remainingByProduct = new Map<string, number>();
+  for (const item of currentItems) {
+    remainingByProduct.set(
+      item.product_id,
+      (remainingByProduct.get(item.product_id) || 0) + item.quantity
+    );
+  }
+
+  // Restore only the latest active consumption represented by current sale_items.
+  // Older immutable movement logs from previous edits must not be restored again.
   const { data: movements, error } = await supabase
     .from("inventory_movements")
     .select("*")
     .eq("reference_id", saleId)
-    .eq("movement_type", "venda");
+    .eq("movement_type", "venda")
+    .order("created_at", { ascending: false });
 
   if (error) throw error;
   if (!movements || movements.length === 0) return;
 
   // Restore each batch
   for (const mv of movements) {
+    const remainingForProduct = remainingByProduct.get(mv.product_id) || 0;
+    if (remainingForProduct <= 0) continue;
+
+    const qtyToRestore = Math.min(remainingForProduct, mv.quantity);
     if (mv.batch_id) {
       const { data: batch } = await supabase
         .from("purchase_batches")
@@ -110,7 +124,7 @@ export async function restoreBatchesFromSale(saleId: string): Promise<void> {
       
       if (batch) {
         const restored = Math.min(
-          batch.remaining_quantity + mv.quantity,
+          batch.remaining_quantity + qtyToRestore,
           batch.initial_quantity
         );
         await supabase
@@ -119,6 +133,7 @@ export async function restoreBatchesFromSale(saleId: string): Promise<void> {
           .eq("id", mv.batch_id);
       }
     }
+    remainingByProduct.set(mv.product_id, remainingForProduct - qtyToRestore);
   }
 
   // Record reversal movement (audit trail) — use "ajuste" for compensation entry
@@ -140,7 +155,9 @@ export async function restoreBatchesFromSale(saleId: string): Promise<void> {
       product_id: mv.product_id,
       batch_id: mv.batch_id,
       movement_type: "ajuste",
-      quantity: mv.quantity,
+      quantity: Math.min(mv.quantity, (currentItems || [])
+        .filter((item) => item.product_id === mv.product_id)
+        .reduce((sum, item) => sum + item.quantity, 0)),
       unit_price: mv.unit_price,
       origin: "ajuste",
       reference_id: saleId,

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useProducts, useUpdateProduct, useDeleteProduct } from "@/hooks/useProducts";
+import { useProducts, useUpdateProduct, useDeleteProduct, useAdjustProductStock } from "@/hooks/useProducts";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +31,7 @@ export default function ProdutoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const { data: products = [], isLoading } = useProducts();
   const updateProduct = useUpdateProduct();
+  const adjustProductStock = useAdjustProductStock();
   const deleteProduct = useDeleteProduct();
 
   const product = products.find((p) => p.id === id);
@@ -55,25 +56,27 @@ export default function ProdutoDetalhe() {
     setInitialized(true);
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!id || !name.trim()) return;
 
-    const finalStock = stockQuantity + stockAdjustment;
+    await updateProduct.mutateAsync({
+      id,
+      name: name.trim(),
+      category: category.trim() || "Outros",
+      cost_price: parseFloat(costPrice) || 0,
+      sale_price: parseFloat(salePrice) || 0,
+      min_stock: parseInt(minStock) || 5,
+    });
 
-    updateProduct.mutate(
-      {
-        id,
-        name: name.trim(),
-        category: category.trim() || "Outros",
-        cost_price: parseFloat(costPrice) || 0,
-        sale_price: parseFloat(salePrice) || 0,
-        stock_quantity: finalStock >= 0 ? finalStock : 0,
-        min_stock: parseInt(minStock) || 5,
-      },
-      {
-        onSuccess: () => navigate("/estoque"),
-      }
-    );
+    if (stockAdjustment !== 0) {
+      await adjustProductStock.mutateAsync({
+        productId: id,
+        adjustment: stockAdjustment,
+        unitCost: parseFloat(costPrice) || 0,
+      });
+    }
+
+    navigate("/estoque");
   };
 
   const handleDelete = () => {
@@ -145,7 +148,7 @@ export default function ProdutoDetalhe() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <Button onClick={handleSave} disabled={updateProduct.isPending}>
+            <Button onClick={handleSave} disabled={updateProduct.isPending || adjustProductStock.isPending}>
               <Save className="w-4 h-4 mr-1" />
               Salvar
             </Button>

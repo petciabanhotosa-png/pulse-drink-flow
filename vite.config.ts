@@ -17,8 +17,11 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "autoUpdate",
-      injectRegister: "auto",
+      registerType: "prompt",
+      injectRegister: null,
+      devOptions: {
+        enabled: false,
+      },
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
         name: "Bebidas Manager",
@@ -52,7 +55,7 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
-        skipWaiting: true,
+        skipWaiting: false,
         navigateFallbackDenylist: [/^\/api/, /supabase\.co/],
         runtimeCaching: [
           {
