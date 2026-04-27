@@ -3,6 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/database";
 import { toast } from "@/hooks/use-toast";
 
+interface StockAdjustmentInput {
+  productId: string;
+  adjustment: number;
+  unitCost: number;
+}
+
 export function useProducts() {
   return useQuery({
     queryKey: ["products"],
@@ -39,13 +45,42 @@ export function useCreateProduct() {
 
   return useMutation({
     mutationFn: async (product: Omit<Product, "id" | "created_at" | "updated_at">) => {
+      const initialStock = Math.max(0, Number(product.stock_quantity) || 0);
       const { data, error } = await supabase
         .from("products")
-        .insert(product)
+        .insert({ ...product, stock_quantity: 0 })
         .select()
         .single();
       
       if (error) throw error;
+
+      if (initialStock > 0) {
+        const { data: batch, error: batchError } = await supabase
+          .from("purchase_batches")
+          .insert({
+            product_id: data.id,
+            initial_quantity: initialStock,
+            remaining_quantity: initialStock,
+            purchase_price: product.cost_price || 0,
+            supplier: "Estoque inicial",
+          })
+          .select()
+          .single();
+
+        if (batchError) throw batchError;
+
+        await supabase.from("inventory_movements").insert({
+          product_id: data.id,
+          batch_id: batch.id,
+          movement_type: "entrada",
+          quantity: initialStock,
+          unit_price: product.cost_price || 0,
+          origin: "ajuste",
+          reference_id: batch.id,
+          resulting_stock: initialStock,
+        });
+      }
+
       return data;
     },
     onSuccess: () => {
@@ -63,9 +98,10 @@ export function useUpdateProduct() {
 
   return useMutation({
     mutationFn: async ({ id, ...product }: Partial<Product> & { id: string }) => {
+      const { stock_quantity: _stockQuantity, ...productData } = product;
       const { data, error } = await supabase
         .from("products")
-        .update(product)
+        .update(productData)
         .eq("id", id)
         .select()
         .single();
@@ -79,6 +115,108 @@ export function useUpdateProduct() {
     },
     onError: (error) => {
       toast({ title: "Erro ao atualizar produto", description: error.message, variant: "destructive" });
+    },
+  });
+}
+
+export function useAdjustProductStock() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ productId, adjustment, unitCost }: StockAdjustmentInput) => {
+      if (adjustment === 0) return;
+
+      if (adjustment > 0) {
+        const { data: batch, error: batchError } = await supabase
+          .from("purchase_batches")
+          .insert({
+            product_id: productId,
+            initial_quantity: adjustment,
+            remaining_quantity: adjustment,
+            purchase_price: unitCost || 0,
+            supplier: "Ajuste manual de estoque",
+          })
+          .select()
+          .single();
+
+        if (batchError) throw batchError;
+
+        const { data: product } = await supabase
+          .from("products")
+          .select("stock_quantity")
+          .eq("id", productId)
+          .single();
+
+        await supabase.from("inventory_movements").insert({
+          product_id: productId,
+          batch_id: batch.id,
+          movement_type: "ajuste",
+          quantity: adjustment,
+          unit_price: unitCost || 0,
+          origin: "ajuste",
+          reference_id: batch.id,
+          resulting_stock: product?.stock_quantity ?? adjustment,
+        });
+
+        return;
+      }
+
+      let remainingToRemove = Math.abs(adjustment);
+      const { data: batches, error } = await supabase
+        .from("purchase_batches")
+        .select("*")
+        .eq("product_id", productId)
+        .gt("remaining_quantity", 0)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+
+      const totalAvailable = (batches || []).reduce(
+        (sum, batch) => sum + Number(batch.remaining_quantity),
+        0
+      );
+      if (totalAvailable < remainingToRemove) {
+        throw new Error("Estoque insuficiente para este ajuste");
+      }
+
+      for (const batch of batches || []) {
+        if (remainingToRemove <= 0) break;
+
+        const quantity = Math.min(remainingToRemove, Number(batch.remaining_quantity));
+        const { error: updateError } = await supabase
+          .from("purchase_batches")
+          .update({ remaining_quantity: Number(batch.remaining_quantity) - quantity })
+          .eq("id", batch.id);
+
+        if (updateError) throw updateError;
+
+        const { data: product } = await supabase
+          .from("products")
+          .select("stock_quantity")
+          .eq("id", productId)
+          .single();
+
+        await supabase.from("inventory_movements").insert({
+          product_id: productId,
+          batch_id: batch.id,
+          movement_type: "ajuste",
+          quantity,
+          unit_price: batch.purchase_price,
+          origin: "ajuste",
+          reference_id: null,
+          resulting_stock: product?.stock_quantity ?? 0,
+        });
+
+        remainingToRemove -= quantity;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["purchase_batches"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory_movements"] });
+    },
+    onError: (error) => {
+      toast({ title: "Erro ao ajustar estoque", description: error.message, variant: "destructive" });
     },
   });
 }
