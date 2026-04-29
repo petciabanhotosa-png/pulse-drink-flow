@@ -62,6 +62,14 @@ export default defineConfig(({ mode }) => ({
         navigateFallbackDenylist: [/^\/api/, /supabase\.co/],
         runtimeCaching: [
           {
+            urlPattern: ({ request }) => request.mode === "navigate",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "html-pages",
+              networkTimeoutSeconds: 3,
+            },
+          },
+          {
             urlPattern: /^https:\/\/.*supabase\.co\/.*/i,
             handler: "NetworkFirst",
             options: {
