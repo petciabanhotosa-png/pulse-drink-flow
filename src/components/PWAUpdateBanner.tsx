@@ -3,11 +3,20 @@ import { RefreshCw } from "lucide-react";
 import { registerSW } from "virtual:pwa-register";
 import { Button } from "@/components/ui/button";
 
+const BUILD_VERSION = import.meta.env.VITE_APP_VERSION ?? "dev";
+
 export function PWAUpdateBanner() {
   const [needRefresh, setNeedRefresh] = useState(false);
   const [updateSW, setUpdateSW] = useState<((reload?: boolean) => Promise<void>) | null>(null);
 
   useEffect(() => {
+    if (localStorage.getItem("bebidas-app-version") !== BUILD_VERSION) {
+      localStorage.setItem("bebidas-app-version", BUILD_VERSION);
+      if (navigator.serviceWorker?.controller) {
+        setNeedRefresh(true);
+      }
+    }
+
     const isInIframe = (() => {
       try {
         return window.self !== window.top;
@@ -31,6 +40,9 @@ export function PWAUpdateBanner() {
       onNeedRefresh() {
         setNeedRefresh(true);
       },
+      onOfflineReady() {
+        localStorage.setItem("bebidas-app-version", BUILD_VERSION);
+      },
       onRegisteredSW(_swUrl, registration) {
         if (registration) {
           setInterval(() => {
@@ -45,6 +57,8 @@ export function PWAUpdateBanner() {
   if (!needRefresh) return null;
 
   const handleUpdate = async () => {
+    localStorage.setItem("bebidas-app-version", BUILD_VERSION);
+
     if (updateSW) {
       await updateSW(true);
     } else {
