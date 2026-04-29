@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "prompt",
+      registerType: "autoUpdate",
       injectRegister: null,
       devOptions: {
         enabled: false,
@@ -55,7 +55,7 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
-        skipWaiting: false,
+        skipWaiting: true,
         navigateFallbackDenylist: [/^\/api/, /supabase\.co/],
         runtimeCaching: [
           {
