@@ -3,7 +3,7 @@ import { RefreshCw } from "lucide-react";
 import { registerSW } from "virtual:pwa-register";
 import { Button } from "@/components/ui/button";
 
-const BUILD_VERSION = __APP_VERSION__;
+const BUILD_VERSION = import.meta.env.VITE_APP_VERSION ?? "dev";
 
 export function PWAUpdateBanner() {
   const [needRefresh, setNeedRefresh] = useState(false);
