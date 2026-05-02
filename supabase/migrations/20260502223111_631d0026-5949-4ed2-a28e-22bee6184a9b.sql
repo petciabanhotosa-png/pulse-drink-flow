@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS trg_sync_product_stock_from_batches ON public.purchase_batches;
