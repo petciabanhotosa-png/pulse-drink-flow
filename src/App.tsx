@@ -22,7 +22,15 @@ import Backup from "./pages/Backup";
 import Instalar from "./pages/Instalar";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 0,
+      refetchOnMount: "always",
+      refetchOnReconnect: true,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
