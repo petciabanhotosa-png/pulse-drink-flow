@@ -285,8 +285,16 @@ export default function Financeiro() {
                       <div>
                         <p className="font-medium text-sm">{entry.category}</p>
                         <p className="text-xs text-muted-foreground">
-                          {entry.description && <span>{entry.description} • </span>}
-                          {format(new Date(entry.created_at), "dd/MM HH:mm")}
+                          {(() => {
+                            const saleLabel = formatSaleEntry(entry);
+                            const desc = saleLabel ?? entry.description;
+                            return (
+                              <>
+                                {desc && <span>{desc} • </span>}
+                                {format(new Date(entry.created_at), "dd/MM HH:mm")}
+                              </>
+                            );
+                          })()}
                         </p>
                       </div>
                     </div>
