@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { DollarSign, TrendingUp, Wallet, ShoppingCart, Download, AlertTriangle, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { DollarSign, TrendingUp, Wallet, ShoppingCart, Download, AlertTriangle, ChevronRight, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
