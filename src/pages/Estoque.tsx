@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Package, History } from "lucide-react";
+import { Plus, Search, Package, History, AlertTriangle } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -86,6 +86,14 @@ export default function Estoque() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
+                          {status !== "ok" && (
+                            <AlertTriangle
+                              className={cn(
+                                "w-4 h-4 shrink-0",
+                                status === "critical" ? "text-destructive" : "text-warning"
+                              )}
+                            />
+                          )}
                           <h3 className="font-medium truncate">{product.name}</h3>
                           <Badge variant="secondary" className="shrink-0 text-xs">
                             {product.category}

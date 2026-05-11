@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DollarSign, TrendingUp, Wallet, ShoppingCart, Download } from "lucide-react";
+import { DollarSign, TrendingUp, Wallet, ShoppingCart, Download, AlertTriangle, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useTodaySales, useMonthSales, useSales } from "@/hooks/useSales";
 import { useCashBalance } from "@/hooks/useCashFlow";
 import { useCurrentInvestment } from "@/hooks/useInvestment";
+import { useProducts } from "@/hooks/useProducts";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -27,6 +28,11 @@ export default function Dashboard() {
   const { data: allSales = [] } = useSales();
   const { data: cashBalance = 0 } = useCashBalance();
   const { data: investment } = useCurrentInvestment();
+  const { data: products = [] } = useProducts();
+
+  const zeroStockCount = products.filter((p) => p.stock_quantity <= 0).length;
+  const lowStockCount = products.filter((p) => p.stock_quantity > 0 && p.stock_quantity <= p.min_stock).length;
+  const stockAlertCount = zeroStockCount + lowStockCount;
 
   const isStandalone = typeof window !== "undefined" && window.matchMedia("(display-mode: standalone)").matches;
 
@@ -101,6 +107,29 @@ export default function Dashboard() {
             <Download className="w-4 h-4 mr-2 text-primary" />
             <span>Instalar App no Celular</span>
           </Button>
+        )}
+
+        {/* Alerta de estoque */}
+        {stockAlertCount > 0 && (
+          <button
+            type="button"
+            onClick={() => navigate("/estoque")}
+            className="w-full flex items-center gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-left text-sm hover:bg-warning/15 transition-colors"
+          >
+            <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
+            <span className="flex-1 text-warning-foreground/90">
+              {zeroStockCount > 0 && (
+                <span className="font-medium text-destructive">
+                  {zeroStockCount} sem estoque
+                </span>
+              )}
+              {zeroStockCount > 0 && lowStockCount > 0 && <span> · </span>}
+              {lowStockCount > 0 && (
+                <span className="text-warning">{lowStockCount} abaixo do mínimo</span>
+              )}
+            </span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </button>
         )}
 
         {/* KPIs */}
