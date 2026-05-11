@@ -127,18 +127,6 @@ export default function Dashboard() {
         {/* Banner */}
         <DashboardBanner />
 
-        {/* Install Banner */}
-        {!isStandalone && (
-          <Button 
-            variant="outline" 
-            className="w-full border-primary/30 bg-primary/5 hover:bg-primary/10"
-            onClick={() => navigate("/instalar")}
-          >
-            <Download className="w-4 h-4 mr-2 text-primary" />
-            <span>Instalar App no Celular</span>
-          </Button>
-        )}
-
         {/* Alerta de estoque */}
         {stockAlertCount > 0 && (
           <button
@@ -188,6 +176,31 @@ export default function Dashboard() {
             variant={cashBalance < 0 ? "destructive" : "default"}
           />
         </div>
+
+        {/* Install Banner (após KPIs) */}
+        {showInstallBanner && (
+          <div className="relative">
+            <Button
+              variant="outline"
+              className="w-full border-primary/30 bg-primary/5 hover:bg-primary/10 pr-10"
+              onClick={() => navigate("/instalar")}
+            >
+              <Download className="w-4 h-4 mr-2 text-primary" />
+              <span>Instalar App no Celular</span>
+            </Button>
+            <button
+              type="button"
+              aria-label="Dispensar"
+              onClick={(e) => {
+                e.stopPropagation();
+                dismissInstallBanner();
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* Gráfico de vendas */}
         <SalesChart data={chartData} period={chartPeriod} onPeriodChange={setChartPeriod} />
