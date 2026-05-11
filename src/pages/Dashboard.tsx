@@ -28,6 +28,11 @@ export default function Dashboard() {
   const { data: allSales = [] } = useSales();
   const { data: cashBalance = 0 } = useCashBalance();
   const { data: investment } = useCurrentInvestment();
+  const { data: products = [] } = useProducts();
+
+  const zeroStockCount = products.filter((p) => p.stock_quantity <= 0).length;
+  const lowStockCount = products.filter((p) => p.stock_quantity > 0 && p.stock_quantity <= p.min_stock).length;
+  const stockAlertCount = zeroStockCount + lowStockCount;
 
   const isStandalone = typeof window !== "undefined" && window.matchMedia("(display-mode: standalone)").matches;
 
