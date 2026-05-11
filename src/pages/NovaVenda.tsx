@@ -149,29 +149,44 @@ export default function NovaVenda() {
         {/* Lista de produtos */}
         {search && (
           <div className="grid grid-cols-2 gap-2">
-            {filteredProducts.slice(0, 6).map((product) => (
-              <Card
-                key={product.id}
-                className={cn(
-                  "cursor-pointer transition-all",
-                  product.stock_quantity === 0 && "opacity-50"
-                )}
-                onClick={() => addItem(product)}
-              >
-                <CardContent className="p-3">
-                  <p className="font-medium text-sm truncate">{product.name}</p>
-                  <p className="text-primary font-bold">
-                    {formatCurrency(product.sale_price)}
-                  </p>
-                  <Badge
-                    variant={product.stock_quantity === 0 ? "destructive" : "secondary"}
-                    className="text-xs mt-1"
-                  >
-                    {product.stock_quantity} un
-                  </Badge>
-                </CardContent>
-              </Card>
-            ))}
+            {filteredProducts.slice(0, 6).map((product) => {
+              const outOfStock = product.stock_quantity <= 0;
+              return (
+                <Card
+                  key={product.id}
+                  aria-disabled={outOfStock}
+                  className={cn(
+                    "transition-all",
+                    outOfStock
+                      ? "opacity-60 cursor-not-allowed border-destructive/40"
+                      : "cursor-pointer hover:border-primary/30"
+                  )}
+                  onClick={() => {
+                    if (outOfStock) {
+                      toast({ title: "Produto sem estoque disponível", variant: "destructive" });
+                      return;
+                    }
+                    addItem(product);
+                  }}
+                >
+                  <CardContent className="p-3">
+                    <p className="font-medium text-sm truncate">{product.name}</p>
+                    <p className="text-primary font-bold">
+                      {formatCurrency(product.sale_price)}
+                    </p>
+                    {outOfStock ? (
+                      <Badge variant="destructive" className="text-xs mt-1">
+                        Sem estoque
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-xs mt-1">
+                        {product.stock_quantity} un
+                      </Badge>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
 
