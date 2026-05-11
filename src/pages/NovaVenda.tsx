@@ -63,8 +63,8 @@ export default function NovaVenda() {
   ) - discountAmount;
 
   const addItem = (product: typeof products[0]) => {
-    if (product.stock_quantity === 0) {
-      toast({ title: "Produto sem estoque!", variant: "destructive" });
+    if (product.stock_quantity <= 0) {
+      toast({ title: "Produto sem estoque disponível", variant: "destructive" });
       return;
     }
 
