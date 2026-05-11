@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useTodaySales, useMonthSales, useSales } from "@/hooks/useSales";
 import { useCashBalance } from "@/hooks/useCashFlow";
 import { useCurrentInvestment } from "@/hooks/useInvestment";
+import { useProducts } from "@/hooks/useProducts";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
