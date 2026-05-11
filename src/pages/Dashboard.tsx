@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { DollarSign, TrendingUp, Wallet, ShoppingCart, Download, AlertTriangle, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { DollarSign, TrendingUp, Wallet, ShoppingCart, Download, AlertTriangle, ChevronRight, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -34,7 +34,37 @@ export default function Dashboard() {
   const lowStockCount = products.filter((p) => p.stock_quantity > 0 && p.stock_quantity <= p.min_stock).length;
   const stockAlertCount = zeroStockCount + lowStockCount;
 
-  const isStandalone = typeof window !== "undefined" && window.matchMedia("(display-mode: standalone)").matches;
+  const isStandalone =
+    typeof window !== "undefined" &&
+    (window.matchMedia("(display-mode: standalone)").matches ||
+      // iOS Safari
+      (window.navigator as unknown as { standalone?: boolean }).standalone === true);
+
+  const INSTALL_BANNER_KEY = "installBannerDismissedAt";
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+
+  useEffect(() => {
+    if (isStandalone) {
+      setShowInstallBanner(false);
+      return;
+    }
+    try {
+      const dismissedAt = Number(localStorage.getItem(INSTALL_BANNER_KEY) || 0);
+      setShowInstallBanner(!dismissedAt || Date.now() - dismissedAt > SEVEN_DAYS_MS);
+    } catch {
+      setShowInstallBanner(true);
+    }
+  }, [isStandalone]);
+
+  const dismissInstallBanner = () => {
+    try {
+      localStorage.setItem(INSTALL_BANNER_KEY, String(Date.now()));
+    } catch {
+      // ignore
+    }
+    setShowInstallBanner(false);
+  };
 
   const todayTotal = todaySales.reduce((acc, sale) => acc + sale.total_amount, 0);
   const monthTotal = monthSales.reduce((acc, sale) => acc + sale.total_amount, 0);
@@ -97,18 +127,6 @@ export default function Dashboard() {
         {/* Banner */}
         <DashboardBanner />
 
-        {/* Install Banner */}
-        {!isStandalone && (
-          <Button 
-            variant="outline" 
-            className="w-full border-primary/30 bg-primary/5 hover:bg-primary/10"
-            onClick={() => navigate("/instalar")}
-          >
-            <Download className="w-4 h-4 mr-2 text-primary" />
-            <span>Instalar App no Celular</span>
-          </Button>
-        )}
-
         {/* Alerta de estoque */}
         {stockAlertCount > 0 && (
           <button
@@ -158,6 +176,31 @@ export default function Dashboard() {
             variant={cashBalance < 0 ? "destructive" : "default"}
           />
         </div>
+
+        {/* Install Banner (após KPIs) */}
+        {showInstallBanner && (
+          <div className="relative">
+            <Button
+              variant="outline"
+              className="w-full border-primary/30 bg-primary/5 hover:bg-primary/10 pr-10"
+              onClick={() => navigate("/instalar")}
+            >
+              <Download className="w-4 h-4 mr-2 text-primary" />
+              <span>Instalar App no Celular</span>
+            </Button>
+            <button
+              type="button"
+              aria-label="Dispensar"
+              onClick={(e) => {
+                e.stopPropagation();
+                dismissInstallBanner();
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* Gráfico de vendas */}
         <SalesChart data={chartData} period={chartPeriod} onPeriodChange={setChartPeriod} />
