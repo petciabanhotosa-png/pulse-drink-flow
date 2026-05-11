@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { useCashFlow, useCashBalance, useAddCashEntry } from "@/hooks/useCashFlow";
 import { useBills, useMarkBillAsPaid, usePendingBills } from "@/hooks/useBills";
 import { format, isBefore, startOfToday } from "date-fns";
-import { ArrowDownCircle, ArrowUpCircle, AlertCircle, Check, Plus, DollarSign, Package } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, AlertCircle, Check, Plus, DollarSign, Package, Clock } from "lucide-react";
+import { useSales } from "@/hooks/useSales";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import {
@@ -34,6 +35,11 @@ export default function Financeiro() {
   const { data: cashBalance = 0 } = useCashBalance();
   const { data: bills = [] } = useBills();
   const { data: pendingBills = [] } = usePendingBills();
+  const { data: sales = [] } = useSales();
+  const pendingSalesTotal = sales
+    .filter((s) => s.status === "pendente")
+    .reduce((acc, s) => acc + Number(s.total_amount), 0);
+  const totalProjected = cashBalance + pendingSalesTotal;
   const markAsPaid = useMarkBillAsPaid();
   const addCashEntry = useAddCashEntry();
 
@@ -77,7 +83,7 @@ export default function Financeiro() {
           cashBalance >= 0 ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"
         )}>
           <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground mb-1">Saldo em Caixa</p>
+            <p className="text-sm text-muted-foreground mb-1">Saldo Recebido (Caixa)</p>
             <p className={cn(
               "text-3xl font-display font-bold",
               cashBalance >= 0 ? "text-primary text-glow" : "text-destructive"
@@ -96,6 +102,38 @@ export default function Financeiro() {
             </div>
           </CardContent>
         </Card>
+
+        {/* A Receber + Projetado */}
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="border-warning/30 bg-warning/5">
+            <CardContent className="p-3 text-center">
+              <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
+                <Clock className="w-3 h-3" />
+                A Receber
+              </div>
+              <p className="text-lg font-bold text-warning truncate">
+                {formatCurrency(pendingSalesTotal)}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Vendas pendentes
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="border-primary/20 bg-muted/30">
+            <CardContent className="p-3 text-center">
+              <p className="text-xs text-muted-foreground mb-1">Saldo Projetado</p>
+              <p className={cn(
+                "text-lg font-bold truncate",
+                totalProjected >= 0 ? "text-primary" : "text-destructive"
+              )}>
+                {formatCurrency(totalProjected)}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Caixa + a receber
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Ações rápidas */}
         <div className="grid grid-cols-2 gap-3">
