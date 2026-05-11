@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { useCashFlow, useCashBalance, useAddCashEntry } from "@/hooks/useCashFlow";
 import { useBills, useMarkBillAsPaid, usePendingBills } from "@/hooks/useBills";
 import { format, isBefore, startOfToday } from "date-fns";
-import { ArrowDownCircle, ArrowUpCircle, AlertCircle, Check, Plus, DollarSign, Package } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, AlertCircle, Check, Plus, DollarSign, Package, Clock } from "lucide-react";
+import { useSales } from "@/hooks/useSales";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import {
