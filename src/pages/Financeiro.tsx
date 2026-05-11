@@ -46,6 +46,62 @@ export default function Financeiro() {
   const markAsPaid = useMarkBillAsPaid();
   const addCashEntry = useAddCashEntry();
 
+  // Numeração sequencial das vendas (mais antiga = #001)
+  const saleNumberMap = useMemo(() => {
+    const map = new Map<string, number>();
+    const ordered = [...sales].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    ordered.forEach((s, i) => map.set(s.id, i + 1));
+    return map;
+  }, [sales]);
+
+  // Buscar itens de todas as vendas referenciadas pelo fluxo de caixa
+  const saleIdsInFlow = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          cashFlow
+            .filter((c) => c.reference_id && (c.reference_type === "venda" || c.reference_type === "sale"))
+            .map((c) => c.reference_id as string)
+        )
+      ),
+    [cashFlow]
+  );
+
+  const { data: saleItemsBySale = {} } = useQuery({
+    queryKey: ["cashflow_sale_items", saleIdsInFlow],
+    enabled: saleIdsInFlow.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sale_items")
+        .select("sale_id, quantity, products:product_id (name)")
+        .in("sale_id", saleIdsInFlow);
+      if (error) throw error;
+      const grouped: Record<string, string[]> = {};
+      for (const item of data as Array<{ sale_id: string; products: { name: string } | null }>) {
+        const name = item.products?.name ?? "Produto removido";
+        (grouped[item.sale_id] ||= []).push(name);
+      }
+      return grouped;
+    },
+  });
+
+  const formatSaleEntry = (entry: typeof cashFlow[0]) => {
+    const isSale =
+      entry.reference_id &&
+      (entry.reference_type === "venda" || entry.reference_type === "sale");
+    if (!isSale) return null;
+    const num = saleNumberMap.get(entry.reference_id as string);
+    const names = saleItemsBySale[entry.reference_id as string] ?? [];
+    let productLabel = "";
+    if (names.length === 1) productLabel = names[0];
+    else if (names.length === 2) productLabel = names.join(", ");
+    else if (names.length > 2) productLabel = `${names[0]} + ${names.length - 1} outros`;
+    const numLabel = num ? `Venda #${String(num).padStart(3, "0")}` : "Venda";
+    return productLabel ? `${numLabel} • ${productLabel}` : numLabel;
+  };
+
   const [cashDialogOpen, setCashDialogOpen] = useState(false);
   const [cashAmount, setCashAmount] = useState("");
   const [cashDescription, setCashDescription] = useState("");
