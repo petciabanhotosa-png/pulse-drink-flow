@@ -34,7 +34,37 @@ export default function Dashboard() {
   const lowStockCount = products.filter((p) => p.stock_quantity > 0 && p.stock_quantity <= p.min_stock).length;
   const stockAlertCount = zeroStockCount + lowStockCount;
 
-  const isStandalone = typeof window !== "undefined" && window.matchMedia("(display-mode: standalone)").matches;
+  const isStandalone =
+    typeof window !== "undefined" &&
+    (window.matchMedia("(display-mode: standalone)").matches ||
+      // iOS Safari
+      (window.navigator as unknown as { standalone?: boolean }).standalone === true);
+
+  const INSTALL_BANNER_KEY = "installBannerDismissedAt";
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+
+  useEffect(() => {
+    if (isStandalone) {
+      setShowInstallBanner(false);
+      return;
+    }
+    try {
+      const dismissedAt = Number(localStorage.getItem(INSTALL_BANNER_KEY) || 0);
+      setShowInstallBanner(!dismissedAt || Date.now() - dismissedAt > SEVEN_DAYS_MS);
+    } catch {
+      setShowInstallBanner(true);
+    }
+  }, [isStandalone]);
+
+  const dismissInstallBanner = () => {
+    try {
+      localStorage.setItem(INSTALL_BANNER_KEY, String(Date.now()));
+    } catch {
+      // ignore
+    }
+    setShowInstallBanner(false);
+  };
 
   const todayTotal = todaySales.reduce((acc, sale) => acc + sale.total_amount, 0);
   const monthTotal = monthSales.reduce((acc, sale) => acc + sale.total_amount, 0);
