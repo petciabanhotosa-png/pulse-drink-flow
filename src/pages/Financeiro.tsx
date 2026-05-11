@@ -35,6 +35,11 @@ export default function Financeiro() {
   const { data: cashBalance = 0 } = useCashBalance();
   const { data: bills = [] } = useBills();
   const { data: pendingBills = [] } = usePendingBills();
+  const { data: sales = [] } = useSales();
+  const pendingSalesTotal = sales
+    .filter((s) => s.status === "pendente")
+    .reduce((acc, s) => acc + Number(s.total_amount), 0);
+  const totalProjected = cashBalance + pendingSalesTotal;
   const markAsPaid = useMarkBillAsPaid();
   const addCashEntry = useAddCashEntry();
 
