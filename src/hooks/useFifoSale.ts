@@ -59,7 +59,7 @@ export async function consumeBatchesFIFO(
   // Record inventory movements for each batch consumed
   for (const c of consumptions) {
     if (c.qty > 0) {
-      await supabase.from("inventory_movements").insert({
+      const { error: mvError } = await supabase.from("inventory_movements").insert({
         product_id: productId,
         batch_id: c.batchId || null,
         movement_type: "venda",
@@ -69,6 +69,7 @@ export async function consumeBatchesFIFO(
         reference_id: saleId,
         resulting_stock: newStock,
       });
+      if (mvError) console.error("Erro ao registrar movimentação de estoque:", mvError);
     }
   }
 
@@ -98,7 +99,6 @@ export async function restoreBatchesFromSale(saleId: string): Promise<void> {
   }
 
   // Restore only the latest active consumption represented by current sale_items.
-  // Older immutable movement logs from previous edits must not be restored again.
   const { data: movements, error } = await supabase
     .from("inventory_movements")
     .select("*")
@@ -116,32 +116,28 @@ export async function restoreBatchesFromSale(saleId: string): Promise<void> {
 
     const qtyToRestore = Math.min(remainingForProduct, mv.quantity);
     if (mv.batch_id) {
-      const { data: batch } = await supabase
+      const { data: batch, error: batchFetchError } = await supabase
         .from("purchase_batches")
         .select("remaining_quantity, initial_quantity")
         .eq("id", mv.batch_id)
         .single();
-      
+
+      if (batchFetchError) console.error("Erro ao buscar lote para restauração:", batchFetchError);
+
       if (batch) {
         const restored = Math.min(
           batch.remaining_quantity + qtyToRestore,
           batch.initial_quantity
         );
-        await supabase
+        const { error: restoreError } = await supabase
           .from("purchase_batches")
           .update({ remaining_quantity: restored })
           .eq("id", mv.batch_id);
+        if (restoreError) console.error("Erro ao restaurar lote:", restoreError);
       }
     }
     remainingByProduct.set(mv.product_id, remainingForProduct - qtyToRestore);
   }
-
-  // Record reversal movement (audit trail) — use "ajuste" for compensation entry
-  const { data: product } = await supabase
-    .from("products")
-    .select("stock_quantity, id")
-    .eq("id", movements[0].product_id)
-    .single();
 
   // Insert one reversal per movement to keep audit symmetrical
   for (const mv of movements) {
@@ -151,7 +147,7 @@ export async function restoreBatchesFromSale(saleId: string): Promise<void> {
       .eq("id", mv.product_id)
       .single();
 
-    await supabase.from("inventory_movements").insert({
+    const { error: reversalError } = await supabase.from("inventory_movements").insert({
       product_id: mv.product_id,
       batch_id: mv.batch_id,
       movement_type: "ajuste",
@@ -163,5 +159,6 @@ export async function restoreBatchesFromSale(saleId: string): Promise<void> {
       reference_id: saleId,
       resulting_stock: prod?.stock_quantity ?? 0,
     });
+    if (reversalError) console.error("Erro ao registrar movimentação de ajuste:", reversalError);
   }
 }

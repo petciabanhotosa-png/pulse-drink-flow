@@ -38,6 +38,16 @@ export default function NovoProduto() {
       return;
     }
 
+    if (costPrice <= 0) {
+      toast({ title: "Preço de custo deve ser maior que zero", variant: "destructive" });
+      return;
+    }
+
+    if (salePrice <= 0) {
+      toast({ title: "Preço de venda deve ser maior que zero", variant: "destructive" });
+      return;
+    }
+
     if (salePrice < costPrice) {
       toast({ title: "Preço de venda menor que o custo!", variant: "destructive" });
       return;

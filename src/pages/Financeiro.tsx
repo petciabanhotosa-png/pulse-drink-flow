@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCashFlow, useCashBalance, useAddCashEntry } from "@/hooks/useCashFlow";
-import { useBills, useMarkBillAsPaid, usePendingBills } from "@/hooks/useBills";
+import { useBills, useMarkBillAsPaid, useDeleteBill, usePendingBills } from "@/hooks/useBills";
 import { format, isBefore, startOfToday } from "date-fns";
-import { ArrowDownCircle, ArrowUpCircle, AlertCircle, Check, Plus, DollarSign, Package, Clock } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, AlertCircle, Check, Plus, DollarSign, Package, Clock, ChevronDown, Trash2 } from "lucide-react";
 import { useSales } from "@/hooks/useSales";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -44,6 +44,7 @@ export default function Financeiro() {
     .reduce((acc, s) => acc + Number(s.total_amount), 0);
   const totalProjected = cashBalance + pendingSalesTotal;
   const markAsPaid = useMarkBillAsPaid();
+  const deleteBill = useDeleteBill();
   const addCashEntry = useAddCashEntry();
 
   // Numeração sequencial das vendas (mais antiga = #001)
@@ -105,6 +106,7 @@ export default function Financeiro() {
   const [cashDialogOpen, setCashDialogOpen] = useState(false);
   const [cashAmount, setCashAmount] = useState("");
   const [cashDescription, setCashDescription] = useState("");
+  const [cashFlowVisible, setCashFlowVisible] = useState(20);
 
   const today = startOfToday();
   const overdueBills = pendingBills.filter((b) => isBefore(new Date(b.due_date), today));
@@ -268,7 +270,7 @@ export default function Financeiro() {
                 Nenhuma movimentação registrada
               </p>
             ) : (
-              cashFlow.slice(0, 20).map((entry) => (
+              cashFlow.slice(0, cashFlowVisible).map((entry) => (
                 <Card key={entry.id}>
                   <CardContent className="p-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -308,6 +310,16 @@ export default function Financeiro() {
                 </Card>
               ))
             )}
+            {cashFlow.length > cashFlowVisible && (
+              <Button
+                variant="ghost"
+                className="w-full text-muted-foreground"
+                onClick={() => setCashFlowVisible(prev => prev + 20)}
+              >
+                <ChevronDown className="w-4 h-4 mr-1" />
+                Mostrar mais ({cashFlow.length - cashFlowVisible} restantes)
+              </Button>
+            )}
           </TabsContent>
 
           <TabsContent value="contas" className="space-y-3 mt-4">
@@ -346,23 +358,36 @@ export default function Financeiro() {
                           </p>
                           <p className="font-bold mt-1">{formatCurrency(bill.amount)}</p>
                         </div>
-                        <div className="shrink-0">
-                          {bill.is_paid ? (
-                            <Badge className="bg-success text-success-foreground">
-                              <Check className="w-3 h-3 mr-1" />
-                              Pago
-                            </Badge>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => markAsPaid.mutate(bill.id)}
-                              disabled={markAsPaid.isPending}
-                            >
-                              Marcar Pago
-                            </Button>
-                          )}
-                        </div>
+                <div className="shrink-0 flex items-center gap-1">
+                  {bill.is_paid ? (
+                    <Badge className="bg-success text-success-foreground">
+                      <Check className="w-3 h-3 mr-1" />
+                      Pago
+                    </Badge>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => markAsPaid.mutate(bill.id)}
+                      disabled={markAsPaid.isPending}
+                    >
+                      Marcar Pago
+                    </Button>
+                  )}
+                  {!bill.is_paid && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10 p-1 h-8 w-8"
+                      onClick={() => {
+                        if (confirm("Excluir esta conta?")) deleteBill.mutate(bill.id);
+                      }}
+                      disabled={deleteBill.isPending}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
                       </div>
                     </CardContent>
                   </Card>

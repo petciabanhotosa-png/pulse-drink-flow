@@ -73,7 +73,7 @@ export function useMarkBillAsPaid() {
       if (error) throw error;
 
       // Registrar saída no caixa
-      await supabase.from("cash_flow").insert({
+      const { error: cfError } = await supabase.from("cash_flow").insert({
         type: "saida",
         category: "conta",
         description: `Pagamento: ${data.description}`,
@@ -81,16 +81,44 @@ export function useMarkBillAsPaid() {
         reference_id: id,
         reference_type: "bill",
       });
+      if (cfError) console.error("Erro ao registrar saída no caixa (conta paga):", cfError);
 
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bills"] });
+      queryClient.invalidateQueries({ queryKey: ["bills", "pending"] });
       queryClient.invalidateQueries({ queryKey: ["cash_flow"] });
       toast({ title: "Conta marcada como paga!" });
     },
     onError: (error) => {
       toast({ title: "Erro ao marcar conta como paga", description: error.message, variant: "destructive" });
+    },
+  });
+}
+
+export function useUpdateBill() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; description?: string; amount?: number; due_date?: string }) => {
+      const { data, error } = await supabase
+        .from("bills")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bills"] });
+      queryClient.invalidateQueries({ queryKey: ["bills", "pending"] });
+      toast({ title: "Conta atualizada com sucesso!" });
+    },
+    onError: (error) => {
+      toast({ title: "Erro ao atualizar conta", description: error.message, variant: "destructive" });
     },
   });
 }
@@ -109,6 +137,7 @@ export function useDeleteBill() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bills"] });
+      queryClient.invalidateQueries({ queryKey: ["bills", "pending"] });
       toast({ title: "Conta excluída com sucesso!" });
     },
     onError: (error) => {

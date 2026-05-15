@@ -19,6 +19,8 @@ interface BackupData {
   sales: Record<string, unknown>[];
   sale_items: Record<string, unknown>[];
   purchases: Record<string, unknown>[];
+  purchase_batches: Record<string, unknown>[];
+  inventory_movements: Record<string, unknown>[];
   bills: Record<string, unknown>[];
   cash_flow: Record<string, unknown>[];
 }
@@ -31,25 +33,29 @@ export default function Backup() {
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      // Buscar todos os dados
-      const [products, customers, sales, saleItems, purchases, bills, cashFlow] = await Promise.all([
+      // Buscar todos os dados (incluindo purchase_batches e inventory_movements para FIFO)
+      const [products, customers, sales, saleItems, purchases, purchaseBatches, inventoryMovements, bills, cashFlow] = await Promise.all([
         supabase.from("products").select("*"),
         supabase.from("customers").select("*"),
         supabase.from("sales").select("*"),
         supabase.from("sale_items").select("*"),
         supabase.from("purchases").select("*"),
+        supabase.from("purchase_batches").select("*"),
+        supabase.from("inventory_movements").select("*"),
         supabase.from("bills").select("*"),
         supabase.from("cash_flow").select("*"),
       ]);
 
       const backup: BackupData = {
-        version: "1.0",
+        version: "1.1",
         created_at: new Date().toISOString(),
         products: products.data || [],
         customers: customers.data || [],
         sales: sales.data || [],
         sale_items: saleItems.data || [],
         purchases: purchases.data || [],
+        purchase_batches: purchaseBatches.data || [],
+        inventory_movements: inventoryMovements.data || [],
         bills: bills.data || [],
         cash_flow: cashFlow.data || [],
       };
@@ -88,8 +94,10 @@ export default function Backup() {
       }
 
       // Limpar dados existentes (na ordem correta por causa das foreign keys)
+      await supabase.from("inventory_movements").delete().neq("id", "00000000-0000-0000-0000-000000000000");
       await supabase.from("sale_items").delete().neq("id", "00000000-0000-0000-0000-000000000000");
       await supabase.from("sales").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await supabase.from("purchase_batches").delete().neq("id", "00000000-0000-0000-0000-000000000000");
       await supabase.from("purchases").delete().neq("id", "00000000-0000-0000-0000-000000000000");
       await supabase.from("cash_flow").delete().neq("id", "00000000-0000-0000-0000-000000000000");
       await supabase.from("bills").delete().neq("id", "00000000-0000-0000-0000-000000000000");
@@ -106,6 +114,9 @@ export default function Backup() {
       if (backup.bills.length > 0) {
         await supabase.from("bills").insert(backup.bills as never[]);
       }
+      if (backup.purchase_batches && backup.purchase_batches.length > 0) {
+        await supabase.from("purchase_batches").insert(backup.purchase_batches as never[]);
+      }
       if (backup.sales.length > 0) {
         await supabase.from("sales").insert(backup.sales as never[]);
       }
@@ -114,6 +125,9 @@ export default function Backup() {
       }
       if (backup.purchases.length > 0) {
         await supabase.from("purchases").insert(backup.purchases as never[]);
+      }
+      if (backup.inventory_movements && backup.inventory_movements.length > 0) {
+        await supabase.from("inventory_movements").insert(backup.inventory_movements as never[]);
       }
       if (backup.cash_flow.length > 0) {
         await supabase.from("cash_flow").insert(backup.cash_flow as never[]);
@@ -145,8 +159,10 @@ export default function Backup() {
     setIsImporting(true);
     try {
       // Limpar dados existentes (na ordem correta por causa das foreign keys)
+      await supabase.from("inventory_movements").delete().neq("id", "00000000-0000-0000-0000-000000000000");
       await supabase.from("sale_items").delete().neq("id", "00000000-0000-0000-0000-000000000000");
       await supabase.from("sales").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await supabase.from("purchase_batches").delete().neq("id", "00000000-0000-0000-0000-000000000000");
       await supabase.from("purchases").delete().neq("id", "00000000-0000-0000-0000-000000000000");
       await supabase.from("cash_flow").delete().neq("id", "00000000-0000-0000-0000-000000000000");
       await supabase.from("bills").delete().neq("id", "00000000-0000-0000-0000-000000000000");
