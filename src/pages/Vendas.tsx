@@ -50,6 +50,7 @@ export default function Vendas() {
   const { data: sales = [], isLoading } = useSales();
   const markAsPaid = useMarkSaleAsPaid();
   const [filter, setFilter] = useState<"todas" | "pagas" | "pendentes">("todas");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filteredSales = sales.filter((sale) => {
     if (filter === "pagas") return sale.status === "pago";
