@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, History, Check } from "lucide-react";
+import { Plus, History, Check, ChevronDown, ChevronUp } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,27 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSales, useMarkSaleAsPaid } from "@/hooks/useSales";
+import { useSaleItems } from "@/hooks/useSaleItems";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+function SaleItemsList({ saleId }: { saleId: string }) {
+  const { data: items = [], isLoading } = useSaleItems(saleId);
+  if (isLoading) return <p className="text-xs text-muted-foreground">Carregando itens...</p>;
+  if (items.length === 0) return <p className="text-xs text-muted-foreground">Sem itens</p>;
+  return (
+    <ul className="space-y-1">
+      {items.map((it) => (
+        <li key={it.id} className="text-xs flex justify-between gap-2">
+          <span className="truncate">{it.product_name} × {it.quantity}</span>
+          <span className="text-muted-foreground shrink-0">
+            {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(it.subtotal)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
