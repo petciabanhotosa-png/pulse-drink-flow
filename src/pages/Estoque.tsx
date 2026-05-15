@@ -21,11 +21,20 @@ export default function Estoque() {
   const navigate = useNavigate();
   const { data: products = [], isLoading } = useProducts();
   const [search, setSearch] = useState("");
+  const [stockFilter, setStockFilter] = useState<"todos" | "zerados" | "criticos">("todos");
 
-  const filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.category.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch =
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.category.toLowerCase().includes(search.toLowerCase());
+    if (!matchesSearch) return false;
+    if (stockFilter === "zerados") return p.stock_quantity <= 0;
+    if (stockFilter === "criticos") return p.stock_quantity <= p.min_stock;
+    return true;
+  });
+
+  const zeroCount = products.filter((p) => p.stock_quantity <= 0).length;
+  const criticalCount = products.filter((p) => p.stock_quantity <= p.min_stock).length;
 
   const getStockStatus = (product: typeof products[0]) => {
     if (product.stock_quantity === 0) return "critical";
@@ -61,6 +70,33 @@ export default function Estoque() {
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
           />
+        </div>
+
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant={stockFilter === "todos" ? "default" : "outline"}
+            onClick={() => setStockFilter("todos")}
+            className="flex-1"
+          >
+            Todos ({products.length})
+          </Button>
+          <Button
+            size="sm"
+            variant={stockFilter === "zerados" ? "default" : "outline"}
+            onClick={() => setStockFilter("zerados")}
+            className={cn("flex-1", stockFilter === "zerados" && "bg-destructive hover:bg-destructive/90")}
+          >
+            Zerados ({zeroCount})
+          </Button>
+          <Button
+            size="sm"
+            variant={stockFilter === "criticos" ? "default" : "outline"}
+            onClick={() => setStockFilter("criticos")}
+            className={cn("flex-1", stockFilter === "criticos" && "bg-warning hover:bg-warning/90 text-warning-foreground")}
+          >
+            Críticos ({criticalCount})
+          </Button>
         </div>
 
         <div className="space-y-3">

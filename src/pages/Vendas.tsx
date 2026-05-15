@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, History, Check } from "lucide-react";
+import { Plus, History, Check, ChevronDown, ChevronUp } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,27 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSales, useMarkSaleAsPaid } from "@/hooks/useSales";
+import { useSaleItems } from "@/hooks/useSaleItems";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+function SaleItemsList({ saleId }: { saleId: string }) {
+  const { data: items = [], isLoading } = useSaleItems(saleId);
+  if (isLoading) return <p className="text-xs text-muted-foreground">Carregando itens...</p>;
+  if (items.length === 0) return <p className="text-xs text-muted-foreground">Sem itens</p>;
+  return (
+    <ul className="space-y-1">
+      {items.map((it) => (
+        <li key={it.id} className="text-xs flex justify-between gap-2">
+          <span className="truncate">{it.product_name} × {it.quantity}</span>
+          <span className="text-muted-foreground shrink-0">
+            {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(it.subtotal)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -31,6 +50,7 @@ export default function Vendas() {
   const { data: sales = [], isLoading } = useSales();
   const markAsPaid = useMarkSaleAsPaid();
   const [filter, setFilter] = useState<"todas" | "pagas" | "pendentes">("todas");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filteredSales = sales.filter((sale) => {
     if (filter === "pagas") return sale.status === "pago";
@@ -89,54 +109,81 @@ export default function Vendas() {
             )}
           </div>
         ) : (
-          filteredSales.map((sale) => (
-            <Card 
-              key={sale.id} 
-              className={`transition-all hover:border-primary/30 cursor-pointer ${
-                sale.status === "pendente" ? "border-warning/50 bg-warning/5" : ""
-              }`}
-              onClick={() => navigate(`/vendas/${sale.id}`)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-medium text-lg">{formatCurrency(sale.total_amount)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(sale.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    </p>
-                    <p className="text-xs text-primary mt-1">
-                      Lucro: {formatCurrency(sale.total_profit)}
-                    </p>
-                    {(sale.discount_amount ?? 0) > 0 && (
+          filteredSales.map((sale) => {
+            const isExpanded = expandedId === sale.id;
+            return (
+              <Card
+                key={sale.id}
+                className={`transition-all hover:border-primary/30 ${
+                  sale.status === "pendente" ? "border-warning/50 bg-warning/5" : ""
+                }`}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div
+                      className="flex-1 cursor-pointer"
+                      onClick={() => setExpandedId(isExpanded ? null : sale.id)}
+                    >
+                      <p className="font-medium text-lg">{formatCurrency(sale.total_amount)}</p>
                       <p className="text-xs text-muted-foreground">
-                        Desconto: -{formatCurrency(sale.discount_amount ?? 0)}
+                        {format(new Date(sale.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                       </p>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <Badge variant={sale.status === "pendente" ? "outline" : "secondary"} className={sale.status === "pendente" ? "border-warning text-warning" : ""}>
-                      {paymentLabels[sale.payment_method as keyof typeof paymentLabels]}
-                    </Badge>
-                    {sale.status === "pendente" && (
+                      <p className="text-xs text-primary mt-1">
+                        Lucro: {formatCurrency(sale.total_profit)}
+                      </p>
+                      {(sale.discount_amount ?? 0) > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Desconto: -{formatCurrency(sale.discount_amount ?? 0)}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge variant={sale.status === "pendente" ? "outline" : "secondary"} className={sale.status === "pendente" ? "border-warning text-warning" : ""}>
+                        {paymentLabels[sale.payment_method as keyof typeof paymentLabels]}
+                      </Badge>
+                      {sale.status === "pendente" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-7 border-success text-success hover:bg-success/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markAsPaid.mutate(sale.id);
+                          }}
+                          disabled={markAsPaid.isPending}
+                        >
+                          <Check className="w-3 h-3 mr-1" />
+                          Pagar
+                        </Button>
+                      )}
                       <Button
                         size="sm"
-                        variant="outline"
-                        className="text-xs h-7 border-success text-success hover:bg-success/10"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          markAsPaid.mutate(sale.id);
-                        }}
-                        disabled={markAsPaid.isPending}
+                        variant="ghost"
+                        className="h-7 text-xs"
+                        onClick={() => setExpandedId(isExpanded ? null : sale.id)}
                       >
-                        <Check className="w-3 h-3 mr-1" />
-                        Pagar
+                        {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                       </Button>
-                    )}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+
+                  {isExpanded && (
+                    <div className="mt-3 pt-3 border-t border-border space-y-2">
+                      <SaleItemsList saleId={sale.id} />
+                      <Button
+                        size="sm"
+                        variant="link"
+                        className="h-6 p-0 text-xs"
+                        onClick={() => navigate(`/vendas/${sale.id}`)}
+                      >
+                        Ver detalhes →
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })
         )}
       </div>
     </AppLayout>

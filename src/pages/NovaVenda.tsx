@@ -139,12 +139,25 @@ export default function NovaVenda() {
       <PageHeader title="Nova Venda" showBack />
 
       <div className="p-4 space-y-4 pb-32">
-        {/* Busca de produtos */}
-        <Input
-          placeholder="Buscar produto..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        {/* Adicionar produto */}
+        <div className="space-y-2">
+          <Input
+            placeholder="Buscar produto..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            id="produto-search"
+          />
+          {!search && (
+            <Button
+              variant="outline"
+              className="w-full border-dashed border-primary/40 text-primary"
+              onClick={() => document.getElementById("produto-search")?.focus()}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar produto
+            </Button>
+          )}
+        </div>
 
         {/* Lista de produtos */}
         {search && (
@@ -205,7 +218,7 @@ export default function NovaVenda() {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{item.product.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatCurrency(item.product.sale_price)} x {item.quantity}
+                      {formatCurrency(item.product.sale_price)} x {item.quantity} = <span className="text-primary font-medium">{formatCurrency(item.product.sale_price * item.quantity)}</span>
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
