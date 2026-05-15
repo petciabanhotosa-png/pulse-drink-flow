@@ -89,7 +89,7 @@ export function useCreatePurchase() {
       const newStock = product?.stock_quantity ?? quantity;
 
       // 4. Registrar movimentação de estoque
-      await supabase.from("inventory_movements").insert({
+      const { error: mvError } = await supabase.from("inventory_movements").insert({
         product_id,
         batch_id: batch.id,
         movement_type: "entrada",
@@ -99,9 +99,10 @@ export function useCreatePurchase() {
         reference_id: purchase.id,
         resulting_stock: newStock,
       });
+      if (mvError) console.error("Erro ao registrar movimentação de estoque:", mvError);
 
       // 5. Registrar saída no caixa
-      await supabase.from("cash_flow").insert({
+      const { error: cfError } = await supabase.from("cash_flow").insert({
         type: "saida",
         category: "compra",
         description: `Compra de estoque`,
@@ -109,6 +110,7 @@ export function useCreatePurchase() {
         reference_id: purchase.id,
         reference_type: "purchase",
       });
+      if (cfError) console.error("Erro ao registrar saída no caixa:", cfError);
 
       return purchase;
     },

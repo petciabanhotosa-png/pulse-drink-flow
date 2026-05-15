@@ -42,6 +42,31 @@ export function useCreateCustomer() {
   });
 }
 
+export function useUpdateCustomer() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { data, error } = await supabase
+        .from("customers")
+        .update({ name })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      toast({ title: "Cliente atualizado com sucesso!" });
+    },
+    onError: (error) => {
+      toast({ title: "Erro ao atualizar cliente", description: error.message, variant: "destructive" });
+    },
+  });
+}
+
 export function useDeleteCustomer() {
   const queryClient = useQueryClient();
 

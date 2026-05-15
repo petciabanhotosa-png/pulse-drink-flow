@@ -17,7 +17,7 @@ export function useProducts() {
         .from("products")
         .select("*")
         .order("name");
-      
+
       if (error) throw error;
       return data as Product[];
     },
@@ -32,9 +32,8 @@ export function useLowStockProducts() {
         .from("products")
         .select("*")
         .order("stock_quantity");
-      
+
       if (error) throw error;
-      // Filter in JS to compare stock_quantity with min_stock
       return (data as Product[]).filter(p => p.stock_quantity <= p.min_stock);
     },
   });
@@ -51,7 +50,7 @@ export function useCreateProduct() {
         .insert({ ...product, stock_quantity: 0 })
         .select()
         .single();
-      
+
       if (error) throw error;
 
       if (initialStock > 0) {
@@ -69,7 +68,7 @@ export function useCreateProduct() {
 
         if (batchError) throw batchError;
 
-        await supabase.from("inventory_movements").insert({
+        const { error: mvError } = await supabase.from("inventory_movements").insert({
           product_id: data.id,
           batch_id: batch.id,
           movement_type: "entrada",
@@ -79,6 +78,7 @@ export function useCreateProduct() {
           reference_id: batch.id,
           resulting_stock: initialStock,
         });
+        if (mvError) console.error("Erro ao registrar movimentação de estoque:", mvError);
       }
 
       return data;
@@ -105,7 +105,7 @@ export function useUpdateProduct() {
         .eq("id", id)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -147,7 +147,7 @@ export function useAdjustProductStock() {
           .eq("id", productId)
           .single();
 
-        await supabase.from("inventory_movements").insert({
+        const { error: mvAddError } = await supabase.from("inventory_movements").insert({
           product_id: productId,
           batch_id: batch.id,
           movement_type: "ajuste",
@@ -157,6 +157,7 @@ export function useAdjustProductStock() {
           reference_id: batch.id,
           resulting_stock: product?.stock_quantity ?? adjustment,
         });
+        if (mvAddError) console.error("Erro ao registrar movimentação de estoque:", mvAddError);
 
         return;
       }
@@ -196,7 +197,7 @@ export function useAdjustProductStock() {
           .eq("id", productId)
           .single();
 
-        await supabase.from("inventory_movements").insert({
+        const { error: mvRemoveError } = await supabase.from("inventory_movements").insert({
           product_id: productId,
           batch_id: batch.id,
           movement_type: "ajuste",
@@ -206,6 +207,7 @@ export function useAdjustProductStock() {
           reference_id: null,
           resulting_stock: product?.stock_quantity ?? 0,
         });
+        if (mvRemoveError) console.error("Erro ao registrar movimentação de estoque:", mvRemoveError);
 
         remainingToRemove -= quantity;
       }
@@ -230,7 +232,7 @@ export function useDeleteProduct() {
         .from("products")
         .delete()
         .eq("id", id);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {

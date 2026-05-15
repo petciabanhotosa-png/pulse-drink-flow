@@ -170,9 +170,26 @@ export function useCreateSale() {
         totalCost += itemCost;
       }
 
-      // Apply discount
+      // Apply discount — distribute proportionally across items for accurate per-item profit
+
       totalAmount -= discount_amount;
+
+      if (discount_amount > 0 && totalAmount + discount_amount > 0) {
+
+        const grossTotal = totalAmount + discount_amount;
+
+        for (const si of saleItems) {
+
+          const discountShare = (si.subtotal / grossTotal) * discount_amount;
+
+          si.profit = si.subtotal - discountShare - (si.unit_cost * si.quantity);
+
+        }
+
+      }
+
       const totalProfit = Math.max(0, totalAmount - totalCost);
+
 
       // Insert sale items
       const { error: itemsError } = await supabase
@@ -189,7 +206,7 @@ export function useCreateSale() {
 
       // Register cash flow only if paid
       if (status === "pago") {
-        await supabase.from("cash_flow").insert({
+        const { error: cfError } = await supabase.from("cash_flow").insert({
           type: "entrada",
           category: "venda",
           description: `Venda #${sale.id.slice(0, 8)}`,
@@ -197,6 +214,7 @@ export function useCreateSale() {
           reference_id: sale.id,
           reference_type: "sale",
         });
+        if (cfError) console.error("Erro ao registrar entrada no caixa:", cfError);
       }
 
       return sale;
@@ -234,7 +252,7 @@ export function useMarkSaleAsPaid() {
         .eq("id", saleId);
       if (updateError) throw updateError;
 
-      await supabase.from("cash_flow").insert({
+      const { error: cfPaidError } = await supabase.from("cash_flow").insert({
         type: "entrada",
         category: "venda",
         description: `Venda #${saleId.slice(0, 8)} (pago)`,
@@ -242,6 +260,7 @@ export function useMarkSaleAsPaid() {
         reference_id: saleId,
         reference_type: "sale",
       });
+      if (cfPaidError) console.error("Erro ao registrar entrada no caixa (venda paga):", cfPaidError);
 
       return sale;
     },
@@ -325,7 +344,23 @@ export function useUpdatePendingSale() {
       }
 
       totalAmount -= discount_amount;
+
+      if (discount_amount > 0 && totalAmount + discount_amount > 0) {
+
+        const grossTotal = totalAmount + discount_amount;
+
+        for (const si of newSaleItems) {
+
+          const discountShare = (si.subtotal / grossTotal) * discount_amount;
+
+          si.profit = si.subtotal - discountShare - (si.unit_cost * si.quantity);
+
+        }
+
+      }
+
       const totalProfit = Math.max(0, totalAmount - totalCost);
+
 
       // 5. Insert new sale_items
       const { error: itemsError } = await supabase
