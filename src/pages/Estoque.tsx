@@ -21,11 +21,20 @@ export default function Estoque() {
   const navigate = useNavigate();
   const { data: products = [], isLoading } = useProducts();
   const [search, setSearch] = useState("");
+  const [stockFilter, setStockFilter] = useState<"todos" | "zerados" | "criticos">("todos");
 
-  const filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.category.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch =
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.category.toLowerCase().includes(search.toLowerCase());
+    if (!matchesSearch) return false;
+    if (stockFilter === "zerados") return p.stock_quantity <= 0;
+    if (stockFilter === "criticos") return p.stock_quantity <= p.min_stock;
+    return true;
+  });
+
+  const zeroCount = products.filter((p) => p.stock_quantity <= 0).length;
+  const criticalCount = products.filter((p) => p.stock_quantity <= p.min_stock).length;
 
   const getStockStatus = (product: typeof products[0]) => {
     if (product.stock_quantity === 0) return "critical";
