@@ -7,6 +7,7 @@ import { KPICard } from "@/components/dashboard/KPICard";
 import { SalesChart } from "@/components/dashboard/SalesChart";
 import { InvestmentChart } from "@/components/dashboard/InvestmentChart";
 import { DashboardBanner } from "@/components/dashboard/DashboardBanner";
+import { DailyGoalCard } from "@/components/dashboard/DailyGoalCard";
 import { Button } from "@/components/ui/button";
 import { useTodaySales, useMonthSales, useSales } from "@/hooks/useSales";
 import { useCashBalance } from "@/hooks/useCashFlow";
