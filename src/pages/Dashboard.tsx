@@ -178,6 +178,9 @@ export default function Dashboard() {
           />
         </div>
 
+        {/* Meta do Dia */}
+        <DailyGoalCard todayTotal={todayTotal} />
+
         {/* Install Banner (após KPIs) */}
         {showInstallBanner && (
           <div className="relative">
