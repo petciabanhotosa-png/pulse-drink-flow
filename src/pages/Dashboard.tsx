@@ -56,7 +56,7 @@ export default function Dashboard() {
     } catch {
       setShowInstallBanner(true);
     }
-  }, [isStandalone]);
+  }, [isStandalone, SEVEN_DAYS_MS]);
 
   const dismissInstallBanner = () => {
     try {

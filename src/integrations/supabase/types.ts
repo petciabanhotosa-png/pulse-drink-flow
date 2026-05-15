@@ -358,6 +358,7 @@ export type Database = {
           customer_id: string | null
           discount_amount: number
           id: string
+        paid_at: string | null
           payment_method: string
           status: string
           total_amount: number
@@ -368,6 +369,7 @@ export type Database = {
           customer_id?: string | null
           discount_amount?: number
           id?: string
+        paid_at?: string | null
           payment_method?: string
           status?: string
           total_amount?: number
@@ -378,6 +380,7 @@ export type Database = {
           customer_id?: string | null
           discount_amount?: number
           id?: string
+        paid_at?: string | null
           payment_method?: string
           status?: string
           total_amount?: number
