@@ -358,7 +358,6 @@ export type Database = {
           customer_id: string | null
           discount_amount: number
           id: string
-        paid_at: string | null
           payment_method: string
           status: string
           total_amount: number
@@ -369,7 +368,6 @@ export type Database = {
           customer_id?: string | null
           discount_amount?: number
           id?: string
-        paid_at?: string | null
           payment_method?: string
           status?: string
           total_amount?: number
@@ -380,7 +378,6 @@ export type Database = {
           customer_id?: string | null
           discount_amount?: number
           id?: string
-        paid_at?: string | null
           payment_method?: string
           status?: string
           total_amount?: number
@@ -401,7 +398,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      fifo_consume_batches: {
+        Args: { p_product_id: string; p_quantity: number; p_sale_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
