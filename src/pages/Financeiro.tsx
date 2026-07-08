@@ -118,8 +118,6 @@ export default function Financeiro() {
   const totalEntries = monthEntries.reduce((acc, c) => acc + c.amount, 0);
   const totalExits = monthExits.reduce((acc, c) => acc + c.amount, 0);
 
-  const totalEntries = entries.reduce((acc, c) => acc + c.amount, 0);
-  const totalExits = exits.reduce((acc, c) => acc + c.amount, 0);
 
   const handleAddCash = async () => {
     const amount = parseFloat(cashAmount);
