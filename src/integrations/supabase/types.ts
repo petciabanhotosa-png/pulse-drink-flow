@@ -398,7 +398,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      fifo_consume_batches: {
+        Args: { p_product_id: string; p_quantity: number; p_sale_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
