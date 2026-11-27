@@ -195,5 +195,56 @@ const fallbackPaid=await call(sale([item(p1,1,10)],{status:'pago'}));
 await db.query('DELETE FROM sale_batch_consumptions WHERE sale_id=$1',[fallbackPaid.id]);
 await call({action:'delete_sale',id:fallbackPaid.id});
 assert.equal((await db.query('SELECT stock_quantity FROM products WHERE id=$1',[p1])).rows[0].stock_quantity,paidStock); checks++;
+// Multi-item purchase: all lines/stock/cash or none, one combined credit plan.
+const order = extra => rpc('create_purchase_order',{payment_method:'pix',items:[{product_id:p1,quantity:3,unit_cost:5.15},{product_id:p2,quantity:2,unit_cost:5}],...extra});
+const beforeOrder=await rawSnapshot();
+const multi=await order({supplier:'Distribuidora'});
+assert.equal(Number(multi.total_amount),25.45);
+assert.equal(multi.purchases.length,2);
+for (const purchase of multi.purchases) {
+ const batches=(await db.query('SELECT * FROM purchase_batches WHERE purchase_id=$1',[purchase.id])).rows;
+ assert.equal(batches.length,1); assert.equal(Number(batches[0].purchase_price),Number(purchase.unit_cost));
+ const cash=(await db.query('SELECT * FROM cash_flow WHERE reference_id=$1',[purchase.id])).rows;
+ assert.equal(cash.length,1); assert.equal(Number(cash[0].amount),Number(purchase.total_amount));
+ assert.equal(cash[0].type,'saida');
+ assert.equal((await db.query('SELECT count(*)::int AS n FROM inventory_movements WHERE reference_id=$1',[purchase.id])).rows[0].n,1);
+}
+for(const [pid,added] of [[p1,3],[p2,2]]) {
+ const previous=beforeOrder.products.find(p=>p.id===pid).stock_quantity;
+ assert.equal((await db.query('SELECT stock_quantity FROM products WHERE id=$1',[pid])).rows[0].stock_quantity,previous+added);
+} checks++;
+const beforeBadOrder=await rawSnapshot();
+for(const bad of [[],[{product_id:p1,quantity:1,unit_cost:5},{product_id:p2,quantity:0,unit_cost:2}],
+ [{product_id:p1,quantity:1,unit_cost:5},{product_id:p2,quantity:1.5,unit_cost:2}],
+ [{product_id:p1,quantity:1,unit_cost:5},{product_id:p2,quantity:1,unit_cost:'NaN'}],
+ [{product_id:p1,quantity:1,unit_cost:5},{product_id:'00000000-0000-4000-8000-000000000099',quantity:1,unit_cost:2}]]) {
+ await assert.rejects(order({items:bad})); assert.deepEqual(await rawSnapshot(),beforeBadOrder); checks++;
+}
+await db.exec("CREATE FUNCTION public.reject_second_purchase_cash() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.description='Compra de Bebida B' THEN RAISE EXCEPTION 'second cash failure'; END IF; RETURN NEW; END; $$; CREATE TRIGGER reject_second_purchase_cash BEFORE INSERT ON cash_flow FOR EACH ROW EXECUTE FUNCTION public.reject_second_purchase_cash()");
+await assert.rejects(order({}),/second cash failure/); assert.deepEqual(await rawSnapshot(),beforeBadOrder); checks++;
+await db.exec('DROP TRIGGER reject_second_purchase_cash ON cash_flow');
+const creditOrder=await order({payment_method:'credito',installment_count:3,first_due_date:'2090-01-31'});
+assert.equal(creditOrder.installments.length,3);
+assert.deepEqual(creditOrder.installments.map(b=>Number(b.amount)),[8.49,8.48,8.48]);
+assert.equal(new Set(creditOrder.installments.map(b=>b.installment_group_id)).size,1);
+assert.ok(creditOrder.installments.every(b=>b.purchase_id===null));
+assert.deepEqual(creditOrder.installments.map(b=>b.due_date),['2090-01-31','2090-02-28','2090-03-31']);
+for(const purchase of creditOrder.purchases) assert.equal((await db.query('SELECT count(*)::int AS n FROM cash_flow WHERE reference_id=$1',[purchase.id])).rows[0].n,0); checks++;
+const beforeCreditFailure=await rawSnapshot();
+await db.exec('CREATE TRIGGER test_installment BEFORE INSERT ON bills FOR EACH ROW EXECUTE FUNCTION public.reject_installment()');
+await assert.rejects(order({payment_method:'credito',installment_count:3,first_due_date:'2090-01-31'}),/forced installment failure/);
+assert.deepEqual(await rawSnapshot(),beforeCreditFailure); checks++;
+await db.exec('DROP TRIGGER test_installment ON bills');
+await assert.rejects(order({payment_method:'credito',installment_count:3,first_due_date:'2000-01-01'}),/data futura/);
+await assert.rejects(order({payment_method:'credito',installment_count:0,first_due_date:'2090-01-31'}),/parcelas/);
+assert.deepEqual(await rawSnapshot(),beforeCreditFailure); checks++;
+const repeated=await order({items:[{product_id:p1,quantity:1,unit_cost:1.11},{product_id:p1,quantity:2,unit_cost:2.22}]});
+assert.equal(Number(repeated.total_amount),5.55); assert.equal(repeated.purchases.length,2); checks++;
+assert.equal((await db.query("SELECT has_function_privilege('anon','public.create_purchase_order(jsonb)','EXECUTE') AS allowed")).rows[0].allowed,false);
+await db.exec("SET request.jwt.claim.sub='00000000-0000-4000-8000-000000000099'");
+await assert.rejects(order({}),/não autorizado/); checks++;
+await db.exec("SET request.jwt.claim.sub='"+user+"'");
+const singleOrder=await order({payment_method:'credito',installment_count:1,first_due_date:'2090-01-31',items:[{product_id:p1,quantity:1,unit_cost:0.01}]});
+assert.equal(singleOrder.installments[0].purchase_id,singleOrder.purchases[0].id); checks++;
 await db.close();
 console.log(`${checks} verificações de transações passaram em PostgreSQL local com dados fictícios.`);

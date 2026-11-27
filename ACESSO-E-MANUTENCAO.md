@@ -230,7 +230,7 @@ escolher uma cópia apenas pelo nome.
   Vendas pendentes permanecem em A Receber com lucro previsto.
 - Não houve migração, regravação do histórico ou alteração de produção nesta etapa.
 
-## Edição e exclusão de vendas confirmadas — preparada para implantação
+## Edição e exclusão de vendas confirmadas — publicada em 04/11/2026
 
 - A tela de detalhes oferece Editar e Excluir também para vendas pagas.
 - Editar preserva o status pago e a data original do recebimento; corrige o valor
@@ -246,4 +246,24 @@ escolher uma cópia apenas pelo nome.
   um backup completo validado. Aplicar apenas
   `20261103230000_manage_confirmed_sales.sql`, que substitui a função de operação
   sem reescrever registros existentes. Não reaplicar as migrações anteriores.
-- Esta seção descreve a mudança preparada; não confirma aplicação em produção.
+- PR #14 integrado e publicado em 04/11/2026. Migração aplicada e conferida com
+  o código, sem alterar as contagens dos dados. Versão publicada 1793800941384.
+
+## Compra com vários itens — 27/11/2026
+
+- Nova Compra permite adicionar/remover até 100 linhas, cada uma com produto,
+  quantidade inteira e custo unitário. Fornecedor e pagamento são comuns.
+- Subtotais e total usam centavos. Custos de cada linha originam lotes próprios;
+  preços de lotes anteriores não são alterados. O mesmo produto pode aparecer
+  em duas linhas com custos diferentes.
+- `create_purchase_order(jsonb)` grava todas as linhas em uma transação usando
+  a mesma trava de operações do aplicativo. Qualquer falha desfaz a compra inteira.
+- À vista, mantém um lançamento de caixa vinculado a cada registro de produto,
+  cuja soma corresponde ao total. No crédito, gera um único grupo de parcelas
+  sobre o total, sem saída imediata de caixa. Vários produtos não têm um único
+  `bills.purchase_id`; a descrição das parcelas identifica os produtos/fornecedor.
+- As tabelas e o formato de backup permanecem iguais. As operações antigas
+  continuam disponíveis. Instalar somente `20261127120000_multi_item_purchases.sql`
+  após conferir o banco e salvar novo backup; depois publicar a interface.
+- Esta seção documenta a implementação; conferir o registro local da implantação
+  para saber se a migração e a publicação já foram concluídas.
