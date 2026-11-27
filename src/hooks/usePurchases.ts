@@ -48,17 +48,19 @@ interface CreatePurchaseInput {
   first_due_date?: string;
 }
 
-export function useCreatePurchase() {
+interface CreatePurchaseOrderInput {
+  items: { product_id: string; quantity: number; unit_cost: number }[];
+  payment_method: PaymentMethod;
+  supplier?: string;
+  installment_count?: number;
+  first_due_date?: string;
+}
+
+function usePurchaseMutation<T>(mutationFn: (input: T) => Promise<unknown>) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ product_id, quantity, unit_cost, payment_method, supplier, installment_count, first_due_date }: CreatePurchaseInput) => {
-      if (payment_method === "credito" && (!installment_count || !first_due_date))
-        throw new Error("Informe as parcelas e o primeiro vencimento do cartão.");
-      return runOperation({ action: "create_purchase", product_id, quantity, unit_cost, payment_method,
-        supplier: supplier || null, installment_count: installment_count || 1, first_due_date: first_due_date || null },
-        payment_method === "credito" ? "create_credit_purchase" : "app_operation");
-    },
+    mutationFn,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["purchases"] });
       queryClient.invalidateQueries({ queryKey: ["investment"] });
@@ -74,5 +76,26 @@ export function useCreatePurchase() {
     onError: (error) => {
       toast({ title: "Erro ao registrar compra", description: error.message, variant: "destructive" });
     },
+  });
+}
+
+export function useCreatePurchase() {
+  return usePurchaseMutation(async ({ product_id, quantity, unit_cost, payment_method, supplier, installment_count, first_due_date }: CreatePurchaseInput) => {
+    if (payment_method === "credito" && (!installment_count || !first_due_date))
+      throw new Error("Informe as parcelas e o primeiro vencimento do cartão.");
+    return runOperation({ action: "create_purchase", product_id, quantity, unit_cost, payment_method,
+      supplier: supplier || null, installment_count: installment_count || 1, first_due_date: first_due_date || null },
+      payment_method === "credito" ? "create_credit_purchase" : "app_operation");
+  });
+}
+
+export function useCreatePurchaseOrder() {
+  return usePurchaseMutation(async ({ items, payment_method, supplier, installment_count, first_due_date }: CreatePurchaseOrderInput) => {
+    if (items.length<1 || items.length>100 || items.some(item => !item.product_id || !Number.isInteger(item.quantity) || item.quantity<=0 || !Number.isFinite(item.unit_cost) || item.unit_cost<=0))
+      throw new Error("Confira os produtos, as quantidades e os custos da compra.");
+    if (payment_method === "credito" && (!installment_count || !first_due_date))
+      throw new Error("Informe as parcelas e o primeiro vencimento do cartão.");
+    return runOperation({ items, payment_method, supplier: supplier || null,
+      installment_count: installment_count || 1, first_due_date: first_due_date || null }, "create_purchase_order");
   });
 }
