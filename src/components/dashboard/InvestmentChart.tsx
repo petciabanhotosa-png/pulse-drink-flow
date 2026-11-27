@@ -52,7 +52,7 @@ export function InvestmentChart({ totalInvested, byProduct }: InvestmentChartPro
                   dataKey="name"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 10, fill: "hsl(220, 10%, 60%)" }}
+                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                   angle={-35}
                   textAnchor="end"
                   height={50}
@@ -61,18 +61,18 @@ export function InvestmentChart({ totalInvested, byProduct }: InvestmentChartPro
                 <YAxis
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 10, fill: "hsl(220, 10%, 60%)" }}
+                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                   tickFormatter={(value) => `${value >= 1000 ? (value / 1000).toFixed(1) + "k" : value}`}
                   width={40}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "hsl(220, 20%, 10%)",
-                    border: "1px solid hsl(220, 15%, 20%)",
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
                     borderRadius: "8px",
                     fontSize: "12px",
                   }}
-                  labelStyle={{ color: "hsl(0, 0%, 95%)" }}
+                  labelStyle={{ color: "hsl(var(--foreground))" }}
                   formatter={(value: number, _name, props) => [
                     `${formatCurrency(value)} (${props.payload.quantity} un)`,
                     props.payload.fullName,
@@ -81,7 +81,7 @@ export function InvestmentChart({ totalInvested, byProduct }: InvestmentChartPro
                 />
                 <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                   {chartData.map((_, i) => (
-                    <Cell key={i} fill="hsl(150, 100%, 50%)" fillOpacity={0.85 - i * 0.05} />
+                    <Cell key={i} fill="hsl(var(--primary))" fillOpacity={0.85 - i * 0.05} />
                   ))}
                 </Bar>
               </BarChart>

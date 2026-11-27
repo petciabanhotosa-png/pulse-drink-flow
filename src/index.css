@@ -60,6 +60,10 @@ All colors MUST be HSL.
     --gradient-card: linear-gradient(145deg, hsl(220, 20%, 12%) 0%, hsl(220, 20%, 8%) 100%);
     --shadow-neon: 0 0 20px hsl(150 100% 50% / 0.3);
     --shadow-card: 0 4px 24px hsl(0 0% 0% / 0.4);
+    --chart-1: 150 100% 50%;
+    --chart-2: 200 100% 50%;
+    --chart-3: 280 100% 50%;
+    --chart-4: 45 100% 50%;
   }
 
   .dark {
@@ -113,10 +117,6 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
-  html {
-    @apply dark;
-  }
-
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', sans-serif;
@@ -124,6 +124,56 @@ All colors MUST be HSL.
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Orbitron', sans-serif;
+  }
+}
+
+/* Optional soft theme. Sage surfaces and muted teal share the same hue family. */
+@layer base {
+  html { color-scheme: dark; }
+  html.soft {
+    color-scheme: light;
+    --background: 155 20% 96%;
+    --foreground: 160 25% 18%;
+    --card: 155 25% 99%;
+    --card-foreground: 160 25% 18%;
+    --popover: 155 25% 99%;
+    --popover-foreground: 160 25% 18%;
+    --primary: 160 35% 30%;
+    --primary-foreground: 155 25% 99%;
+    --secondary: 155 20% 90%;
+    --secondary-foreground: 160 25% 22%;
+    --muted: 155 16% 92%;
+    --muted-foreground: 160 12% 39%;
+    --accent: 155 23% 86%;
+    --accent-foreground: 160 30% 24%;
+    --destructive: 5 47% 40%;
+    --destructive-foreground: 0 0% 100%;
+    --warning: 35 65% 30%;
+    --warning-foreground: 0 0% 100%;
+    --success: 160 35% 30%;
+    --success-foreground: 155 25% 99%;
+    --border: 155 17% 82%;
+    --input: 155 17% 78%;
+    --ring: 160 35% 35%;
+    --sidebar-background: 155 20% 94%;
+    --sidebar-foreground: 160 25% 18%;
+    --sidebar-primary: 160 35% 30%;
+    --sidebar-primary-foreground: 155 25% 99%;
+    --sidebar-accent: 155 20% 88%;
+    --sidebar-accent-foreground: 160 25% 22%;
+    --sidebar-border: 155 17% 82%;
+    --sidebar-ring: 160 35% 35%;
+    --gradient-neon: linear-gradient(135deg, hsl(160 32% 32%), hsl(155 26% 45%));
+    --gradient-card: linear-gradient(145deg, hsl(155 25% 99%), hsl(155 20% 94%));
+    --shadow-neon: 0 3px 12px hsl(160 20% 25% / 0.10);
+    --shadow-card: 0 4px 20px hsl(160 20% 25% / 0.06);
+    --chart-1: 160 35% 30%;
+    --chart-2: 160 28% 43%;
+    --chart-3: 160 22% 56%;
+    --chart-4: 160 18% 68%;
+  }
+  .soft h1, .soft h2, .soft h3, .soft h4, .soft h5, .soft h6, .soft .font-display {
+    font-family: 'Inter', sans-serif;
   }
 }
 
@@ -143,6 +193,11 @@ All colors MUST be HSL.
   .animate-pulse-glow {
     animation: pulse-glow 2s ease-in-out infinite;
   }
+
+  .soft .glow-neon, .soft .border-glow { box-shadow: var(--shadow-neon); }
+  .soft .text-glow { text-shadow: none; }
+  .soft .animate-pulse-glow { animation: none; }
+  .soft nav svg { filter: none; }
 
   @keyframes pulse-glow {
     0%, 100% {
