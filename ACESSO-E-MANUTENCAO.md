@@ -265,5 +265,21 @@ escolher uma cópia apenas pelo nome.
 - As tabelas e o formato de backup permanecem iguais. As operações antigas
   continuam disponíveis. Instalar somente `20261127120000_multi_item_purchases.sql`
   após conferir o banco e salvar novo backup; depois publicar a interface.
-- Esta seção documenta a implementação; conferir o registro local da implantação
-  para saber se a migração e a publicação já foram concluídas.
+- PR #15 integrado e publicado em 27/11/2026. Migração aplicada e conferida,
+  dados existentes preservados. Versão pública 1795811260587.
+
+## Relatório diário e aparência suave — 27/11/2026
+
+- Relatórios → Vendas contém um seletor de mês e o resumo por dia com total
+  recebido, lucro e quantidade de vendas. Abrir o dia mostra cada venda e seu lucro,
+  com link para o detalhe. “Comissão” foi confirmada pelo usuário como o lucro já
+  calculado pelo sistema; não existe novo percentual ou dedução.
+- O agrupamento usa a data do recebimento no fuso America/Manaus, inclusive para
+  vendas antigas com recebimento vinculado. Pendentes não entram. Somas em centavos,
+  lucros históricos preservados e prejuízos visíveis. O resumo mensal antigo continua
+  identificado como “Resumo do mês atual”; não confundir com o mês escolhido acima.
+- O ícone de paleta no cabeçalho permite escolher Neon atual ou Suave. O segundo
+  usa verdes claros, tons próximos e gráficos adaptados, sem os brilhos neon.
+- A preferência fica somente no aparelho (`pulse-drink-theme`), restaura na abertura
+  e não altera login, PIN, dados comerciais ou escolha dos demais aparelhos.
+- Não há migração nem gravação em registros comerciais nesta alteração.

@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { ThemePicker } from "@/components/ThemePicker";
 
 interface PageHeaderProps {
   title: string;
@@ -16,7 +17,7 @@ export function PageHeader({ title, subtitle, showBack, action }: PageHeaderProp
   return (
     <header className="sticky top-0 z-30 bg-background/95 backdrop-blur-lg border-b border-border">
       <div className="flex items-center justify-between px-4 py-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           {showBack && (
             <Button
               variant="ghost"
@@ -28,7 +29,7 @@ export function PageHeader({ title, subtitle, showBack, action }: PageHeaderProp
             </Button>
           )}
           <div>
-            <h1 className="text-lg font-display font-semibold text-foreground">
+            <h1 className="text-lg font-display font-semibold text-foreground break-words">
               {title}
             </h1>
             {subtitle && (
@@ -36,7 +37,10 @@ export function PageHeader({ title, subtitle, showBack, action }: PageHeaderProp
             )}
           </div>
         </div>
-        {action && <div>{action}</div>}
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          {action}
+          <ThemePicker />
+        </div>
       </div>
     </header>
   );

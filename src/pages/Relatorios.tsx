@@ -1,4 +1,5 @@
 import { sumMoney } from "@/lib/money";
+import { DailySalesReport } from "@/components/reports/DailySalesReport";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,11 +26,11 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-const COLORS = ["hsl(150, 100%, 50%)", "hsl(200, 100%, 50%)", "hsl(280, 100%, 50%)", "hsl(45, 100%, 50%)"];
+const COLORS = [1, 2, 3, 4].map(index => `hsl(var(--chart-${index}))`);
 
 export default function Relatorios() {
   const navigate = useNavigate();
-  const { data: receivedSales = [], isError: receiptsError } = useReceivedSales();
+  const { data: receivedSales = [], isError: receiptsError, isLoading: receiptsLoading } = useReceivedSales();
   const { data: products = [] } = useProducts();
   const { data: cashFlow = [] } = useCashFlow();
   const { data: bills = [] } = useBills();
@@ -259,6 +260,8 @@ export default function Relatorios() {
 
           {/* RELATÓRIO DE VENDAS */}
           <TabsContent value="vendas" className="space-y-4 mt-4">
+            <DailySalesReport sales={receivedSales} loading={receiptsLoading} error={receiptsError} />
+            <h2 className="text-sm font-semibold">Resumo do mês atual</h2>
             <div className="grid grid-cols-2 gap-3">
               <Card>
                 <CardContent className="p-3 text-center">
@@ -426,7 +429,7 @@ export default function Relatorios() {
                         <XAxis type="number" tickFormatter={(v) => `R$${v}`} />
                         <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 10 }} />
                         <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                        <Bar dataKey="profit" fill="hsl(150, 100%, 50%)" radius={[0, 4, 4, 0]} />
+                        <Bar dataKey="profit" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
